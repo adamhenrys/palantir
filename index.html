@@ -23,11 +23,13 @@
   .lang{margin-left:auto;display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px}
   .lang button{background:transparent;color:var(--muted);padding:4px 12px;border-radius:999px;font-size:13px}
   .lang button.on{background:var(--accent);color:#fff}
-  .menu{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 14px}
-  .menu button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);padding:9px 16px;border-radius:10px;font-size:14px}
-  .menu button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .menu .badge{display:inline-block;background:var(--red);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;margin-left:6px;font-weight:700}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .menu{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:2px 0 16px}
+  .menu button{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);padding:12px 6px;border-radius:16px;font-size:12px;font-weight:600;line-height:1.2;text-align:center}
+  .menu button .mi{font-size:22px;line-height:1}
+  .menu button.on{background:linear-gradient(160deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(37,99,235,.35)}
+  .menu button.on:hover{background:linear-gradient(160deg,var(--accent),var(--accent2))}
+  .menu .badge{position:absolute;top:6px;right:8px;background:var(--red);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;font-weight:800}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
   .card h2{margin:0 0 10px;font-size:15px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
   .row{display:flex;gap:12px;flex-wrap:wrap}
   .field{flex:1;min-width:150px}
@@ -51,7 +53,7 @@
   .muted{color:var(--muted)}
   .pill{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;margin:2px 4px 2px 0}
   .stat{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
-  .stat .b{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:110px}
+  .stat .b{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-width:100px}
   .stat .b .n{font-size:22px;font-weight:800}
   .stat .b .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
   .drivers{display:grid;grid-template-columns:1fr;gap:10px}
@@ -76,7 +78,16 @@
     padding:12px 18px;border-radius:10px;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90%;text-align:center}
   .warn{background:var(--redbg);border:1px solid var(--red);color:#ffb4b4;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:8px}
   .ok{background:var(--greenbg);border:1px solid #1f5238;color:#7ee2a8;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:8px}
-  details.cfg summary{cursor:pointer;color:var(--muted);font-size:13px;user-select:none}
+  details.cfg{border-bottom:0}
+  details.cfg > summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted);
+    font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;user-select:none;padding:2px 0}
+  details.cfg > summary::-webkit-details-marker{display:none}
+  details.cfg > summary::after{content:'';margin-left:auto;flex:0 0 auto;width:8px;height:8px;
+    border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);
+    transition:transform .18s;margin-right:3px}
+  details.cfg[open] > summary::after{transform:rotate(-135deg)}
+  details.cfg > summary:hover{color:var(--txt)}
+  details.cfg > summary:hover::after{border-color:var(--txt)}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media(max-width:640px){.grid2{grid-template-columns:1fr}}
 
@@ -125,6 +136,30 @@
   .progress{height:8px;background:var(--panel2);border-radius:999px;overflow:hidden;margin-top:8px}
   .progress i{display:block;height:100%;background:var(--green);width:0}
   .report-btn{width:100%;margin-top:6px;background:#7c3aed}.report-btn:hover{background:#6d28d9}
+
+  /* ---- Style « application » : grille de tuiles (séries) ---- */
+  .app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:16px 10px;margin:2px 0 10px}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:none;padding:0}
+  .tile:hover{background:none}
+  .tile .ic{width:100%;max-width:78px;aspect-ratio:1;border-radius:20px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;box-shadow:0 8px 18px rgba(0,0,0,.4);background:linear-gradient(160deg,#3b82f6,#2563eb)}
+  .tile .ic .big{font-size:30px;font-weight:900;line-height:1}
+  .tile .ic .sm{font-size:11px;font-weight:700;opacity:.92;margin-top:3px}
+  .tile .nm{font-size:12px;font-weight:600;color:var(--txt)}
+  .tile.pending .ic{background:linear-gradient(160deg,#3b82f6,#2563eb)}
+  .tile.active  .ic{background:linear-gradient(160deg,#f59e0b,#d97706)}
+  .tile.done    .ic{background:linear-gradient(160deg,#16a34a,#0b8043)}
+  .tile.done .nm{color:var(--muted)}
+  .tile .badge-c{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;border:3px solid var(--bg)}
+  .tile .check{position:absolute;top:7px;right:10px;font-size:15px;font-weight:900}
+  .tile:active .ic{transform:scale(.94)}
+  /* écran d'une série ouverte (app chauffeur) */
+  .screen-hd{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .screen-hd .backb{width:42px;height:42px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-size:24px;font-weight:800;padding:0;display:flex;align-items:center;justify-content:center}
+  .screen-hd .backb:hover{background:var(--panel)}
+  .screen-hd .ttl{font-size:22px;font-weight:800}
+  .seriesgo{border-radius:16px!important;margin-bottom:12px;border-bottom:none!important}
+  .stoplist{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:12px}
+  .stoplist .dv-stop:first-child{border-top:none}
   @media print{
     body{background:#fff;color:#000}
     .noprint{display:none!important}
@@ -343,46 +378,63 @@ function renderDriver(){
   const seriesOrigin=bi=>{ if(bi===0) return (data.d||CFG.depot); const p=data.b[bi-1][data.b[bi-1].length-1]; return `${p.a}, ${p.p} ${p.c}, Suisse`; };
   let openIndex=(function(){ for(let bi=0;bi<data.b.length;bi++) if(!fin['s'+bi]) return bi; return -1; })();
 
-  function seriesCard(bi){
-    const batch=data.b[bi], finished=!!fin['s'+bi], open=(bi===openIndex && !finished);
+  let screen='home';  // 'home' = grille des séries ; sinon index de la série ouverte
+
+  // une série = une « app » (tuile) sur l'écran d'accueil
+  function tile(bi){
+    const batch=data.b[bi];
     const dOk=batch.filter((s,si)=>done[bi+'_'+si]==='ok').length;
     const dNo=batch.filter((s,si)=>done[bi+'_'+si]==='no').length;
-    const box=el('div','dv-batch'+(finished?' finished':'')+((open||finished&&open)?'':' collapsed'));
-    const h=el('div','h'); h.style.cursor='pointer';
-    h.innerHTML=`<b>${L('seriesWord')} ${bi+1}</b><span class="muted">${finished?`✓ ${dOk} ${L('deliveredWord')}${dNo?` · ${dNo} ${L('notDelivered').toLowerCase()}`:''}`:`${dOk+dNo}/${batch.length}`}</span>`;
-    h.onclick=()=>{ openIndex=(bi===openIndex?-1:bi); render(); };
-    box.appendChild(h);
-    if(open){
-      const go=el('a','go start'); go.href=mapsLink(batch.map(s=>({address:s.a,npa:s.p,city:s.c})),seriesOrigin(bi)); go.target='_blank';
-      go.textContent=L('startSeries');
-      box.appendChild(go);
-      batch.forEach((s,si)=>{
-        const id=bi+'_'+si, stt=done[id]||'';
-        const st=el('div','dv-stop '+(stt==='ok'?'ok':stt==='no'?'no':''));
-        st.innerHTML=`<div class="num">${code(bi,si)}</div>
-          <div class="a"><div class="adr">${s.a}</div><div class="sub">${s.p} ${s.c}</div>
-            <input class="door" placeholder="🔑 ${L('doorCode')}" value="${(codes[id]||'').replace(/"/g,'&quot;')}"></div>
-          <div class="stbtns"><button class="okb" title="${L('delivered')}">✓</button><button class="nob" title="${L('notDelivered')}">✕</button></div>`;
-        st.querySelector('.door').addEventListener('input',ev=>{ codes[id]=ev.target.value; save(); });
-        st.querySelector('.okb').onclick=()=>{ done[id]=done[id]==='ok'?'':'ok'; save(); render(); };
-        st.querySelector('.nob').onclick=()=>{ done[id]=done[id]==='no'?'':'no'; save(); render(); };
-        box.appendChild(st);
-      });
-      const fb=el('button','finishb'); fb.textContent=L('finishSeries');
-      fb.onclick=()=>{ fin['s'+bi]=true; save(); for(let b=0;b<data.b.length;b++) if(!fin['s'+b]){openIndex=b;break;} render(); };
-      box.appendChild(fb);
-    } else if(finished){
-      // repliée en gris ; clic sur l'en-tête pour rouvrir/relire
-      const rb=el('button','ghost sm'); rb.style.margin='0 12px 12px'; rb.textContent=L('reopenSeries');
-      rb.onclick=()=>{ fin['s'+bi]=false; openIndex=bi; save(); render(); };
-      if(bi===openIndex) box.appendChild(rb);
-    }
-    return box;
+    const finished=!!fin['s'+bi];
+    const remaining=batch.length-dOk-dNo;
+    const state=finished?'done':((dOk+dNo>0)?'active':'pending');
+    const t=el('button','tile '+state);
+    const badge=(!finished && remaining>0 && (dOk+dNo)>0)?`<span class="badge-c">${remaining}</span>`:'';
+    const sub=finished?`✓ ${dOk}`:`${dOk+dNo}/${batch.length}`;
+    t.innerHTML=`<div class="ic">${finished?'<div class="check">✓</div>':''}${badge}<div class="big">${bi+1}</div><div class="sm">${sub}</div></div><div class="nm">${L('seriesWord')} ${bi+1}</div>`;
+    t.onclick=()=>{ screen=bi; render(); };
+    return t;
+  }
+
+  // écran d'UNE série (on entre « dans l'app »)
+  function seriesScreen(bi){
+    const batch=data.b[bi], finished=!!fin['s'+bi];
+    const wrap=el('div','series-screen');
+    const hd=el('div','screen-hd');
+    hd.innerHTML=`<button class="backb" title="←">‹</button><div class="ttl">${L('seriesWord')} ${bi+1}</div><div class="muted" style="margin-left:auto;font-size:13px">${batch.length} ${L('stops')}</div>`;
+    hd.querySelector('.backb').onclick=()=>{ screen='home'; render(); };
+    wrap.appendChild(hd);
+
+    const go=el('a','go start seriesgo'); go.href=mapsLink(batch.map(s=>({address:s.a,npa:s.p,city:s.c})),seriesOrigin(bi)); go.target='_blank';
+    go.textContent=L('startSeries');
+    wrap.appendChild(go);
+
+    const list=el('div','stoplist');
+    batch.forEach((s,si)=>{
+      const id=bi+'_'+si, stt=done[id]||'';
+      const st=el('div','dv-stop '+(stt==='ok'?'ok':stt==='no'?'no':''));
+      st.innerHTML=`<div class="num">${code(bi,si)}</div>
+        <div class="a"><div class="adr">${s.a}</div><div class="sub">${s.p} ${s.c}</div>
+          <input class="door" placeholder="🔑 ${L('doorCode')}" value="${(codes[id]||'').replace(/"/g,'&quot;')}"></div>
+        <div class="stbtns"><button class="okb" title="${L('delivered')}">✓</button><button class="nob" title="${L('notDelivered')}">✕</button></div>`;
+      st.querySelector('.door').addEventListener('input',ev=>{ codes[id]=ev.target.value; save(); });
+      st.querySelector('.okb').onclick=()=>{ done[id]=done[id]==='ok'?'':'ok'; save(); render(); };
+      st.querySelector('.nob').onclick=()=>{ done[id]=done[id]==='no'?'':'no'; save(); render(); };
+      list.appendChild(st);
+    });
+    wrap.appendChild(list);
+
+    const fb=el('button','finishb'); fb.textContent=finished?L('reopenSeries'):L('finishSeries');
+    fb.onclick=()=>{ const nowFin=!fin['s'+bi]; fin['s'+bi]=nowFin; save(); if(nowFin) screen='home'; render(); };
+    wrap.appendChild(fb);
+    return wrap;
   }
 
   function render(){
-    const remain=total-okCount();
     app.innerHTML='';
+    if(screen!=='home'){ app.appendChild(seriesScreen(screen)); window.scrollTo(0,0); return; }
+
+    const remain=total-okCount();
     const hd=el('div','dv-hd');
     hd.innerHTML=`<div style="display:flex;align-items:center"><div class="big">🚚 ${data.n}</div>${langToggle()}</div>
       <div class="remainbox"><div class="remain-n">${remain}</div><div class="remain-l">${L('remainLabel')}</div>
@@ -390,12 +442,13 @@ function renderDriver(){
       <div class="progress"><i style="width:${total?((okCount()+noCount())/total*100):0}%"></i></div>`;
     app.appendChild(hd);
 
-    // séries actives d'abord, séries terminées en gris tout en bas
-    const pend=[], doned=[];
-    data.b.forEach((b,bi)=>{ (fin['s'+bi]?doned:pend).push(bi); });
-    pend.concat(doned).forEach(bi=>app.appendChild(seriesCard(bi)));
+    const lbl=el('div','muted'); lbl.style.cssText='font-size:12px;text-transform:uppercase;letter-spacing:.6px;margin:2px 2px 8px'; lbl.textContent=L('seriesWord')+'s';
+    app.appendChild(lbl);
+    const grid=el('div','app-grid');
+    data.b.forEach((b,bi)=>grid.appendChild(tile(bi)));
+    app.appendChild(grid);
 
-    const sg=el('div','card'); sg.style.marginTop='4px';
+    const sg=el('div','card'); sg.style.marginTop='8px';
     sg.innerHTML=`<label style="font-size:13px">${L('suggTitle')}</label>
       <textarea id="sugg" rows="2" placeholder="${L('suggPh')}">${sugg}</textarea>`;
     app.appendChild(sg);
@@ -429,10 +482,10 @@ function renderOrganizer(){
      ${langToggle()}
    </header>
    <div class="menu noprint">
-     <button class="${TAB==='rutas'?'on':''}" onclick="goTab('rutas')">🚚 ${L('m_rutas')}</button>
-     <button class="${TAB==='hist'?'on':''}" onclick="goTab('hist')">📅 ${L('m_hist')}</button>
-     <button class="${TAB==='undel'?'on':''}" onclick="goTab('undel')">📦 ${L('m_undel')}${undelToday?`<span class="badge">${undelToday}</span>`:''}</button>
-     <button class="${TAB==='pagos'?'on':''}" onclick="goTab('pagos')">💰 ${L('m_pagos')}</button>
+     <button class="${TAB==='rutas'?'on':''}" onclick="goTab('rutas')"><span class="mi">🚚</span>${L('m_rutas')}</button>
+     <button class="${TAB==='hist'?'on':''}" onclick="goTab('hist')"><span class="mi">📅</span>${L('m_hist')}</button>
+     <button class="${TAB==='undel'?'on':''}" onclick="goTab('undel')"><span class="mi">📦</span>${L('m_undel')}${undelToday?`<span class="badge">${undelToday}</span>`:''}</button>
+     <button class="${TAB==='pagos'?'on':''}" onclick="goTab('pagos')"><span class="mi">💰</span>${L('m_pagos')}</button>
    </div>
    <div id="tab"></div>`;
   renderTab();
@@ -542,9 +595,9 @@ function detectAndMap(){
 function buildMapper(headers){
   const m=$('#mapper'); if(!m) return; m.classList.remove('hide');
   const opts=sel=>headers.map((h,j)=>`<option value="${j}" ${sel===j?'selected':''}>${h||('Col '+j)}</option>`).join('');
-  m.innerHTML=`<h2>${L('step2')}</h2><p class="muted" style="margin-top:0">${L('mapperHelp')}</p>
-   <div class="grid2">${[['tracking',L('c_tracking')],['npa',L('c_npa')],['city',L('c_city')],['address',L('c_address')],['prov',L('c_prov')],['weight',L('c_weight')]]
-     .map(([k,l])=>`<div class="field"><label>${l}</label><select data-k="${k}"><option value="-1">${L('none')}</option>${opts(COLMAP[k])}</select></div>`).join('')}</div>`;
+  m.innerHTML=`<details class="cfg"><summary>${L('step2')} <span class="muted" style="text-transform:none;font-weight:400">· ${L('mapperHelp')}</span></summary>
+   <div class="grid2" style="margin-top:12px">${[['tracking',L('c_tracking')],['npa',L('c_npa')],['city',L('c_city')],['address',L('c_address')],['prov',L('c_prov')],['weight',L('c_weight')]]
+     .map(([k,l])=>`<div class="field"><label>${l}</label><select data-k="${k}"><option value="-1">${L('none')}</option>${opts(COLMAP[k])}</select></div>`).join('')}</div></details>`;
   m.querySelectorAll('select').forEach(s=>{ s.value=COLMAP[s.dataset.k]; s.onchange=()=>{COLMAP[s.dataset.k]=+s.value;applyMap();}; });
 }
 function applyMap(){
@@ -558,14 +611,15 @@ function showPreview(){
   const p=$('#preview'); if(!p) return; p.classList.remove('hide');
   const npas=[...new Set(PARCELS.map(x=>x.npa))].filter(Boolean);
   const cities=[...new Set(PARCELS.map(x=>x.city))].filter(Boolean);
-  p.innerHTML=`<h2>${L('preview')}</h2><div class="stat">
+  p.innerHTML=`<details class="cfg" open><summary>${L('preview')} <span class="muted" style="text-transform:none;font-weight:400">· ${PARCELS.length} ${L('colis').toLowerCase()} · ${npas.length} ${L('zones')}</span></summary>
+    <div class="stat" style="margin-top:12px">
       <div class="b"><div class="n">${PARCELS.length}</div><div class="l">${L('colis')}</div></div>
       <div class="b"><div class="n">${npas.length}</div><div class="l">${L('zones')}</div></div>
       <div class="b"><div class="n">${cities.length}</div><div class="l">${L('cities')}</div></div></div>
     <div style="margin-top:8px">${cities.slice(0,12).map(c=>`<span class="pill">${c}</span>`).join('')}</div>
     <table style="margin-top:10px"><thead><tr><th>${L('c_tracking')}</th><th>NPA</th><th>${L('c_city')}</th><th>${L('c_address')}</th></tr></thead>
     <tbody>${PARCELS.slice(0,8).map(s=>`<tr><td class="muted">${s.tracking}</td><td>${s.npa}</td><td>${s.city}</td><td>${s.address}</td></tr>`).join('')}</tbody></table>
-    <p class="muted">${fShowing(PARCELS.length)}</p>`;
+    <p class="muted">${fShowing(PARCELS.length)}</p></details>`;
   $('#organize').classList.remove('hide'); $('#btnOrg').onclick=organize;
 }
 
