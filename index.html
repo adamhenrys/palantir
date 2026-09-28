@@ -248,10 +248,12 @@ function b64enc(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o))))
 function b64dec(s){ return JSON.parse(decodeURIComponent(escape(atob(s)))); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function langToggle(){ return `<div class="lang noprint"><button class="${LANG==='fr'?'on':''}" onclick="setLang('fr')">FR</button><button class="${LANG==='es'?'on':''}" onclick="setLang('es')">ES</button></div>`; }
-function mapsLink(stops){
-  // Format « chemin » classique : /maps/dir/Origine/Arrêt1/Arrêt2/... — le plus compatible,
-  // ouvre l'app Google Maps avec tous les arrêts dans l'ordre.
-  const parts=[CFG.depot, ...stops.map(s=>`${s.address}, ${s.npa} ${s.city}, Suisse`)];
+function mapsLink(stops, origin){
+  // Format « chemin » : /maps/dir/Origine/Arrêt1/Arrêt2/... — compatible partout.
+  // origin = point de départ (dépôt pour le 1er groupe, sinon dernier arrêt du groupe précédent
+  // pour ne PAS revenir à Renens entre les groupes).
+  const o = (origin!=null && origin!=='') ? origin : CFG.depot;
+  const parts=[o, ...stops.map(s=>`${s.address}, ${s.npa} ${s.city}, Suisse`)];
   return 'https://www.google.com/maps/dir/'+parts.map(p=>encodeURIComponent(p)).join('/');
 }
 
@@ -301,7 +303,10 @@ function renderDriver(){
     box.appendChild(h);
     // bouton Google Maps en haut du groupe / botón Maps arriba del grupo
     const stopsTop=batch.map(s=>({address:s.a,npa:s.p,city:s.c}));
-    const goTop=el('a','go'); goTop.href=mapsLink(stopsTop); goTop.target='_blank';
+    // départ : dépôt pour le 1er groupe, sinon dernier arrêt du groupe précédent
+    let originTop=(data.d||CFG.depot);
+    if(bi>0){ const prev=data.b[bi-1][data.b[bi-1].length-1]; originTop=`${prev.a}, ${prev.p} ${prev.c}, Suisse`; }
+    const goTop=el('a','go'); goTop.href=mapsLink(stopsTop, originTop); goTop.target='_blank';
     goTop.textContent=(LANG==='fr'?`📍 Ouvrir dans Google Maps`:`📍 Abrir en Google Maps`);
     box.appendChild(goTop);
     batch.forEach((s,si)=>{
@@ -586,10 +591,12 @@ function renderResults(overflow){
     const bc=box.querySelector('.batches'); let counter=0;
     r.batches.forEach((batch,bi)=>{
       const start=counter+1, end=counter+batch.length; counter=end;
+      let origin=CFG.depot;
+      if(bi>0){ const prev=r.batches[bi-1][r.batches[bi-1].length-1]; origin=`${prev.address}, ${prev.npa} ${prev.city}, Suisse`; }
       const b=el('div','batch');
       b.innerHTML=`<div class="bhd"><b>${L('group')} ${bi+1} · ${start}–${end}</b><span class="muted">${batch.length} ${L('stops')}</span></div>
         <ol start="${start}">${batch.map(s=>`<li>${s.address} <span class="muted">— ${s.npa} ${s.city}</span></li>`).join('')}</ol>
-        <div class="acts noprint"><a href="${mapsLink(batch)}" target="_blank"><button class="maps sm">📍 Google Maps</button></a></div>`;
+        <div class="acts noprint"><a href="${mapsLink(batch,origin)}" target="_blank"><button class="maps sm">📍 Google Maps</button></a></div>`;
       bc.appendChild(b);
     });
     res.appendChild(box);
