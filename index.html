@@ -249,11 +249,10 @@ function b64dec(s){ return JSON.parse(decodeURIComponent(escape(atob(s)))); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function langToggle(){ return `<div class="lang noprint"><button class="${LANG==='fr'?'on':''}" onclick="setLang('fr')">FR</button><button class="${LANG==='es'?'on':''}" onclick="setLang('es')">ES</button></div>`; }
 function mapsLink(stops){
-  const fmt=s=>encodeURIComponent(`${s.address}, ${s.npa} ${s.city}, Suisse`);
-  const origin=encodeURIComponent(CFG.depot);
-  if(stops.length===1) return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${fmt(stops[0])}&travelmode=driving`;
-  const dest=fmt(stops[stops.length-1]); const way=stops.slice(0,-1).map(fmt).join('%7C');
-  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${way}&travelmode=driving`;
+  // Format « chemin » classique : /maps/dir/Origine/Arrêt1/Arrêt2/... — le plus compatible,
+  // ouvre l'app Google Maps avec tous les arrêts dans l'ordre.
+  const parts=[CFG.depot, ...stops.map(s=>`${s.address}, ${s.npa} ${s.city}, Suisse`)];
+  return 'https://www.google.com/maps/dir/'+parts.map(p=>encodeURIComponent(p)).join('/');
 }
 
 /* ---------------- import config (lien de setup) ---------------- */
