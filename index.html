@@ -84,6 +84,13 @@
   .driverview{max-width:640px}
   .dv-hd{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;position:sticky;top:0;z-index:5}
   .dv-hd .big{font-size:20px;font-weight:800}
+  .remainbox{text-align:center;margin:10px 0 4px}
+  .remainbox .remain-n{font-size:52px;font-weight:900;line-height:1;color:var(--amber)}
+  .remainbox .remain-l{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .remainbox .remain-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .dv-batch.complete .h{background:#12241a}
+  .dv-batch.complete .h b{color:#7ee2a8}
+  .dv-batch.collapsed .h{opacity:.85}
   .dv-batch{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
   .dv-batch .h{padding:12px 14px;background:var(--panel2);display:flex;justify-content:space-between;align-items:center;gap:10px}
   .dv-stop{display:flex;gap:12px;align-items:center;padding:14px;border-top:1px solid var(--line)}
@@ -111,6 +118,7 @@
 <body>
 <div class="wrap" id="app"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
 <script>
 /* ============================================================
    PALANTIR — Organisateur de tournées / Organizador de rutas
@@ -192,6 +200,15 @@ const T = {
   payDays:{fr:"Jours", es:"Días"}, payToPay:{fr:"À payer", es:"A pagar"}, payTotal:{fr:"Total à payer", es:"Total a pagar"},
   payEmpty:{fr:"Aucune donnée. Organisez des tournées pour calculer les paiements.", es:"Sin datos. Organiza rutas para calcular los pagos."},
   payNote:{fr:"Fixe = tarif/jour × jours travaillés. Externe = tarif/colis × colis livrés.", es:"Fijo = tarifa/día × días trabajados. Externo = tarifa/paquete × paquetes."},
+  seriesWord:{fr:"Série", es:"Serie"},
+  remainLabel:{fr:"À livrer", es:"Faltan"},
+  seriesDone:{fr:"terminée ✓", es:"terminada ✓"},
+  suggTitle:{fr:"💡 Suggestion pour le trajet (optionnel)", es:"💡 Sugerencia para el trayecto (opcional)"},
+  suggPh:{fr:"Ex. rue barrée, digicode, horaire d'accès…", es:"Ej. calle cortada, código, horario de acceso…"},
+  estTime:{fr:"Temps estimé", es:"Tiempo estim."},
+  minPerStop:{fr:"Min. par arrêt (estimation)", es:"Min. por parada (estimación)"},
+  colSugg:{fr:"Suggestion du chauffeur", es:"Sugerencia del conductor"},
+  colFinish:{fr:"Fini à", es:"Terminó a"},
 };
 function fWaMsg(name,date,n,link){
   return LANG==='fr'
@@ -213,7 +230,7 @@ const CFG_KEY='palantir_cfg_v1', HIST_KEY='palantir_hist_v1', REP_KEY='palantir_
    Renseignez chauffeurs et prix dans Configuration : ils sont enregistrés
    uniquement dans VOTRE navigateur (localStorage), jamais dans le code. */
 const DEFAULT_CFG = {
-  depot:'Renens, Suisse', price:0, batchSize:10, perDriver:130, extraPerParcel:0,
+  depot:'Renens, Suisse', price:0, batchSize:9, perDriver:130, extraPerParcel:0, minPerStop:5,
   rememberZones:false, zoneMap:{},
   drivers:[
     {name:'Chauffeur 1',type:'fijo',day:0,active:true},
@@ -242,9 +259,13 @@ function setLang(l){ LANG=l; try{localStorage.setItem('palantir_lang',l);}catch(
 const $=s=>document.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
 const chf=n=>(Math.round(n*100)/100).toLocaleString('fr-CH',{minimumFractionDigits:2,maximumFractionDigits:2})+' CHF';
+function fmtDur(min){ min=Math.round(min); const h=Math.floor(min/60), m=min%60; return h?`${h}h${m?(' '+m+'min'):''}`:`${m}min`; }
 function toast(m){ const t=el('div','toast',m); document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
 function norm(s){ return (s==null?'':''+s).trim(); }
 function b64enc(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))); }
+// packEnc/packDec: liens compressés (beaucoup plus courts). 'z' = compressé; sinon ancien base64.
+function packEnc(o){ try{ return 'z'+LZString.compressToEncodedURIComponent(JSON.stringify(o)); }catch(e){ return b64enc(o); } }
+function packDec(s){ if(s && s[0]==='z'){ return JSON.parse(LZString.decompressFromEncodedURIComponent(s.slice(1))); } return b64dec(s); }
 function b64dec(s){ return JSON.parse(decodeURIComponent(escape(atob(s)))); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function langToggle(){ return `<div class="lang noprint"><button class="${LANG==='fr'?'on':''}" onclick="setLang('fr')">FR</button><button class="${LANG==='es'?'on':''}" onclick="setLang('es')">ES</button></div>`; }
@@ -260,7 +281,7 @@ function mapsLink(stops, origin){
 /* ---------------- import config (lien de setup) ---------------- */
 function importCfgFromHash(){
   try{
-    const c=b64dec(location.hash.slice(5));
+    const c=packDec(location.hash.slice(5));
     if(c && c.drivers) CFG=Object.assign(JSON.parse(JSON.stringify(DEFAULT_CFG)),c);
     saveCfg();
   }catch(e){}
@@ -278,7 +299,7 @@ else renderOrganizer();
    ============================================================ */
 function renderDriver(){
   let data;
-  try{ data=b64dec(location.hash.slice(3)); }catch(e){ $('#app').innerHTML='<p class="warn">'+L('invalidLink')+'</p>'; return; }
+  try{ data=packDec(location.hash.slice(3)); }catch(e){ $('#app').innerHTML='<p class="warn">'+L('invalidLink')+'</p>'; return; }
   if(data.lang) LANG=data.lang;
   document.title=(LANG==='fr'?'Tournée · ':'Ruta · ')+data.n;
   const app=$('#app'); app.className='wrap driverview';
@@ -286,62 +307,76 @@ function renderDriver(){
   const storeKey='dv_done_'+(data.id||data.n);
   let done={}; try{done=JSON.parse(localStorage.getItem(storeKey))||{};}catch(e){}
 
-  app.innerHTML='';
-  const hd=el('div','dv-hd');
-  hd.innerHTML=`<div style="display:flex;align-items:center"><div class="big">🚚 ${data.n}</div>${langToggle()}</div>
-    <div class="muted">${total} ${L('colisWord')} · ${data.b.length} ${L('groups')} · ${L('depotLabel')} ${data.d||CFG.depot}</div>
-    <div class="muted" style="font-size:12px;margin-top:6px">${L('driverInstr')}</div>
-    <div class="progress"><i id="prog"></i></div>
-    <div class="muted" id="progtxt" style="font-size:12px;margin-top:4px"></div>`;
-  app.appendChild(hd);
+  const code=(bi,si)=>(bi+1)*10+(si+1);            // série 4 · position 9 -> 49
+  const isDone=(bi,si)=>!!done[bi+'_'+si];
+  const seriesDoneCount=bi=>data.b[bi].filter((s,si)=>isDone(bi,si)).length;
+  const seriesComplete=bi=>seriesDoneCount(bi)===data.b[bi].length;
+  const firstOpenSeries=()=>{ for(let bi=0;bi<data.b.length;bi++) if(!seriesComplete(bi)) return bi; return data.b.length-1; };
+  let openIndex=firstOpenSeries();
+  let sugg=''; try{ sugg=localStorage.getItem(storeKey+'_sugg')||''; }catch(e){}
 
-  let counter=0;
-  data.b.forEach((batch,bi)=>{
-    const start=counter+1, end=counter+batch.length;
-    const box=el('div','dv-batch');
-    const h=el('div','h'); h.innerHTML=`<b>${L('group')} ${bi+1} · ${start}–${end}</b><span class="muted">${batch.length} ${L('stops')}</span>`;
-    box.appendChild(h);
-    // bouton Google Maps en haut du groupe / botón Maps arriba del grupo
-    const stopsTop=batch.map(s=>({address:s.a,npa:s.p,city:s.c}));
-    // départ : dépôt pour le 1er groupe, sinon dernier arrêt du groupe précédent
-    let originTop=(data.d||CFG.depot);
-    if(bi>0){ const prev=data.b[bi-1][data.b[bi-1].length-1]; originTop=`${prev.a}, ${prev.p} ${prev.c}, Suisse`; }
-    const goTop=el('a','go'); goTop.href=mapsLink(stopsTop, originTop); goTop.target='_blank';
-    goTop.textContent=(LANG==='fr'?`📍 Ouvrir dans Google Maps`:`📍 Abrir en Google Maps`);
-    box.appendChild(goTop);
-    batch.forEach((s,si)=>{
-      counter++;
-      const id=bi+'_'+si;
-      const st=el('div','dv-stop'+(done[id]?' done':''));
-      st.innerHTML=`<div class="num">${counter}</div>
-        <input type="checkbox" ${done[id]?'checked':''} data-id="${id}">
-        <div class="a"><div class="adr">${s.a}</div>
-        <div class="sub">${s.p} ${s.c} · <span class="muted">${s.t||''}</span></div></div>`;
-      st.querySelector('input').addEventListener('change',ev=>{
-        done[id]=ev.target.checked; localStorage.setItem(storeKey,JSON.stringify(done));
-        st.classList.toggle('done',ev.target.checked); updateProg();
-      });
-      box.appendChild(st);
+  function render(){
+    const del=Object.keys(done).filter(k=>done[k]).length;
+    const remain=total-del;
+    app.innerHTML='';
+    // en-tête : gros compteur « à livrer »
+    const hd=el('div','dv-hd');
+    hd.innerHTML=`<div style="display:flex;align-items:center"><div class="big">🚚 ${data.n}</div>${langToggle()}</div>
+      <div class="remainbox"><div class="remain-n">${remain}</div><div class="remain-l">${L('remainLabel')}</div>
+        <div class="remain-sub">${del}/${total} ${L('delivered')}</div></div>
+      <div class="progress"><i style="width:${total?(del/total*100):0}%"></i></div>`;
+    app.appendChild(hd);
+
+    data.b.forEach((batch,bi)=>{
+      const dc=seriesDoneCount(bi), complete=seriesComplete(bi), open=(bi===openIndex);
+      const box=el('div','dv-batch'+(complete?' complete':'')+(open?'':' collapsed'));
+      const h=el('div','h'); h.style.cursor='pointer';
+      h.innerHTML=`<b>${L('seriesWord')} ${bi+1}</b><span class="muted">${complete?L('seriesDone'):dc+'/'+batch.length}</span>`;
+      h.onclick=()=>{ openIndex=(open?-1:bi); render(); };
+      box.appendChild(h);
+      if(open){
+        // Google Maps : départ = dépôt (1re série) sinon dernier arrêt de la série précédente
+        let origin=(data.d||CFG.depot);
+        if(bi>0){ const prev=data.b[bi-1][data.b[bi-1].length-1]; origin=`${prev.a}, ${prev.p} ${prev.c}, Suisse`; }
+        const go=el('a','go'); go.href=mapsLink(batch.map(s=>({address:s.a,npa:s.p,city:s.c})),origin); go.target='_blank';
+        go.textContent=(LANG==='fr'?'📍 Ouvrir dans Google Maps':'📍 Abrir en Google Maps');
+        box.appendChild(go);
+        batch.forEach((s,si)=>{
+          const st=el('div','dv-stop'+(isDone(bi,si)?' done':''));
+          st.innerHTML=`<div class="num">${code(bi,si)}</div>
+            <input type="checkbox" ${isDone(bi,si)?'checked':''}>
+            <div class="a"><div class="adr">${s.a}</div><div class="sub">${s.p} ${s.c}</div></div>`;
+          st.querySelector('input').addEventListener('change',ev=>{
+            done[bi+'_'+si]=ev.target.checked; try{localStorage.setItem(storeKey,JSON.stringify(done));}catch(e){}
+            if(ev.target.checked && seriesComplete(bi)){ openIndex=firstOpenSeries(); } // auto-avance
+            render();
+          });
+          box.appendChild(st);
+        });
+      }
+      app.appendChild(box);
     });
-    app.appendChild(box);
-  });
 
-  // bouton rapport / botón reporte
-  const rep=el('button','report-btn noprint');
-  rep.textContent=L('sendReport');
-  rep.onclick=()=>{
-    const undel=[]; let c=0;
-    data.b.forEach((batch,bi)=>batch.forEach((s,si)=>{ c++; if(!done[bi+'_'+si]) undel.push({a:s.a,p:s.p,c:s.c,t:s.t,num:c}); }));
-    const report={n:data.n,date:today(),tot:total,del:total-undel.length,u:undel};
-    const link=location.origin+location.pathname+'#report='+b64enc(report);
-    navigator.clipboard.writeText(link); toast(L('reportCopied'));
-  };
-  app.appendChild(rep);
+    // suggestion du chauffeur
+    const sg=el('div','card'); sg.style.marginTop='4px';
+    sg.innerHTML=`<label style="font-size:13px">${L('suggTitle')}</label>
+      <textarea id="sugg" rows="2" placeholder="${L('suggPh')}">${sugg}</textarea>`;
+    app.appendChild(sg);
+    sg.querySelector('#sugg').addEventListener('input',ev=>{ sugg=ev.target.value; try{localStorage.setItem(storeKey+'_sugg',sugg);}catch(e){} });
 
-  function updateProg(){ const d=Object.values(done).filter(Boolean).length;
-    $('#prog').style.width=(total?(d/total*100):0)+'%';
-    $('#progtxt').textContent=`${d} / ${total} ${L('delivered')}`; }
-  updateProg();
+    // bouton rapport (colis non livrés + suggestion + heure)
+    const rep=el('button','report-btn'); rep.textContent=L('sendReport');
+    rep.onclick=()=>{
+      const undel=[];
+      data.b.forEach((batch,bi)=>batch.forEach((s,si)=>{ if(!isDone(bi,si)) undel.push({a:s.a,p:s.p,c:s.c,num:code(bi,si)}); }));
+      const now=new Date().toTimeString().slice(0,5);
+      const report={n:data.n,date:today(),tot:total,del:total-undel.length,u:undel,sugg:sugg,fin:now};
+      const link=location.origin+location.pathname+'#report='+packEnc(report);
+      navigator.clipboard.writeText(link); toast(L('reportCopied'));
+    };
+    app.appendChild(rep);
+  }
+  render();
 }
 
 /* ============================================================
@@ -385,6 +420,7 @@ function renderTab(){
            <div class="field"><label>${L('batch')}</label><input id="c_batch" type="number" value="${CFG.batchSize}"></div>
            <div class="field"><label>${L('perDriver')}</label><input id="c_pd" type="number" value="${CFG.perDriver}"></div>
            <div class="field"><label>${L('extra')}</label><input id="c_extra" type="number" step="0.01" value="${CFG.extraPerParcel}"></div>
+           <div class="field"><label>${L('minPerStop')}</label><input id="c_mps" type="number" value="${CFG.minPerStop}"></div>
          </div>
          <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer">
            <input type="checkbox" id="c_rz" ${CFG.rememberZones?'checked':''} style="width:auto"> ${L('rememberZones')}</label>
@@ -433,7 +469,7 @@ function renderDrivers(){
 }
 function wireConfig(){
   const bind=(id,key,num)=>{const e=$(id); if(!e)return; e.onchange=()=>{CFG[key]=num?+e.value:e.value;saveCfg();};};
-  bind('#c_depot','depot',false); bind('#c_price','price',true); bind('#c_batch','batchSize',true); bind('#c_pd','perDriver',true); bind('#c_extra','extraPerParcel',true);
+  bind('#c_depot','depot',false); bind('#c_price','price',true); bind('#c_batch','batchSize',true); bind('#c_pd','perDriver',true); bind('#c_extra','extraPerParcel',true); bind('#c_mps','minPerStop',true);
   const rz=$('#c_rz'); if(rz) rz.onchange=()=>{CFG.rememberZones=rz.checked;saveCfg();};
   $('#addFijo').onclick=()=>{CFG.drivers.push({name:L('newFixed'),type:'fijo',day:0,active:true});saveCfg();renderDrivers();};
   $('#addFr').onclick=()=>{CFG.drivers.push({name:L('newFr'),type:'fr',rate:0,active:true});saveCfg();renderDrivers();};
@@ -579,7 +615,7 @@ function renderResults(overflow){
     const box=el('div','route');
     box.innerHTML=`<div class="rhd"><div>
         <div class="who">🚚 ${r.driver.name} <span class="tag ${isfr?'fr':'fijo'}">${isfr?L('tagFr'):L('tagFixed')}</span></div>
-        <div class="muted">${n} ${L('colisWord')} · ${r.batches.length} ${L('groups')}</div></div>
+        <div class="muted">${n} ${L('colisWord')} · ${r.batches.length} ${L('seriesWord').toLowerCase()}s · ⏱ ${L('estTime')} ~${fmtDur(n*(CFG.minPerStop||5))}</div></div>
         <div style="text-align:right"><div class="margin ${mcls}" style="font-size:18px;font-weight:800">${chf(mar)}</div>
         <div class="muted" style="font-size:12px">${fRevMinus(chf(rev),chf(cost+extra))}</div></div></div>
       <div style="padding:8px 14px 14px">
@@ -607,9 +643,10 @@ function renderResults(overflow){
   sum.scrollIntoView({behavior:'smooth'});
 }
 function driverLink(r){
+  // sans tracking (le chauffeur navigue par numéro série+position) -> lien beaucoup plus court
   const data={ id:r.driver.name.replace(/\s/g,'_')+'_'+today(), n:r.driver.name, d:CFG.depot, lang:LANG,
-    b:r.batches.map(batch=>batch.map(s=>({a:s.address,p:s.npa,c:s.city,t:s.tracking}))) };
-  return location.origin+location.pathname+'#r='+b64enc(data);
+    b:r.batches.map(batch=>batch.map(s=>({a:s.address,p:s.npa,c:s.city}))) };
+  return location.origin+location.pathname+'#r='+packEnc(data);
 }
 function waOpen(r){
   const link=driverLink(r);
@@ -653,7 +690,7 @@ function renderUndelivered(c){
   $('#loadRep').onclick=()=>{
     const v=$('#repin').value.trim(); const m=v.match(/#report=([^\s]+)/);
     if(!m){ toast(L('reportErr')); return; }
-    let rep; try{ rep=b64dec(m[1]); }catch(e){ toast(L('reportErr')); return; }
+    let rep; try{ rep=packDec(m[1]); }catch(e){ toast(L('reportErr')); return; }
     const list=getReports(); const i=list.findIndex(r=>r.n===rep.n&&r.date===rep.date);
     if(i>=0) list[i]=rep; else list.unshift(rep);
     setReports(list); $('#repin').value=''; toast(L('reportLoaded')); renderUndelivered(c);
@@ -664,14 +701,15 @@ function renderUndelivered(c){
   if(!reps.length){ out.innerHTML=`<div class="card"><p class="muted">${L('noReports')}</p></div>`; return; }
   out.innerHTML=reps.map(r=>`<div class="card">
      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
-       <div><b>🚚 ${r.n}</b> <span class="muted">· ${r.date}</span></div>
+       <div><b>🚚 ${r.n}</b> <span class="muted">· ${r.date}${r.fin?' · '+L('colFinish')+' '+r.fin:''}</span></div>
        <div class="stat" style="margin:0">
          <div class="b"><div class="n">${r.tot}</div><div class="l">${L('colTotal')}</div></div>
          <div class="b"><div class="n" style="color:var(--green)">${r.del}</div><div class="l">${L('colDelivered')}</div></div>
          <div class="b"><div class="n" style="color:var(--red)">${r.u.length}</div><div class="l">${L('colUndel')}</div></div>
        </div></div>
-     ${r.u.length?`<table style="margin-top:10px"><thead><tr><th>#</th><th>${L('c_address')}</th><th>NPA</th><th>${L('c_city')}</th><th>${L('c_tracking')}</th></tr></thead>
-       <tbody>${r.u.map(s=>`<tr><td>${s.num||''}</td><td>${s.a}</td><td>${s.p}</td><td>${s.c}</td><td class="muted">${s.t||''}</td></tr>`).join('')}</tbody></table>`
+     ${r.sugg?`<div class="ok" style="margin-top:8px;background:#1a2436;border-color:#2a3a52;color:#cdd9ec">💡 <b>${L('colSugg')}:</b> ${r.sugg}</div>`:''}
+     ${r.u.length?`<table style="margin-top:10px"><thead><tr><th>#</th><th>${L('c_address')}</th><th>NPA</th><th>${L('c_city')}</th></tr></thead>
+       <tbody>${r.u.map(s=>`<tr><td><b>${s.num||''}</b></td><td>${s.a}</td><td>${s.p}</td><td>${s.c}</td></tr>`).join('')}</tbody></table>`
        :`<div class="ok" style="margin-top:8px">${L('allDelivered')}</div>`}
    </div>`).join('');
 }
