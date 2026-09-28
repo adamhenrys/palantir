@@ -256,8 +256,20 @@ function mapsLink(stops){
   return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${way}&travelmode=driving`;
 }
 
+/* ---------------- import config (lien de setup) ---------------- */
+function importCfgFromHash(){
+  try{
+    const c=b64dec(location.hash.slice(5));
+    if(c && c.drivers) CFG=Object.assign(JSON.parse(JSON.stringify(DEFAULT_CFG)),c);
+    saveCfg();
+  }catch(e){}
+  // nettoyer l'URL pour ne pas ré-importer
+  history.replaceState(null,'',location.pathname);
+}
+
 /* ---------------- routeur ---------------- */
 if(location.hash.startsWith('#r=')) renderDriver();
+else if(location.hash.startsWith('#cfg=')){ importCfgFromHash(); renderOrganizer(); toast(LANG==='fr'?'Configuration importée ✔':'Configuración importada ✔'); }
 else renderOrganizer();
 
 /* ============================================================
