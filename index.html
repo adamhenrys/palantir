@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Palantir · RXN</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --txt:#e8eaed; --muted:#9aa3b2; --accent:#3b82f6; --accent2:#2563eb;
+    --green:#22c55e; --greenbg:#0f2a1a; --amber:#f59e0b; --red:#ef4444; --redbg:#2a1414;
+    --chip:#232833;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+  a{color:var(--accent)}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 0 10px}
+  .logo{font-weight:800;font-size:22px;letter-spacing:.5px}
+  .logo span{color:var(--accent)}
+  .sub{color:var(--muted);font-size:13px}
+  .lang{margin-left:auto;display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .lang button{background:transparent;color:var(--muted);padding:4px 12px;border-radius:999px;font-size:13px}
+  .lang button.on{background:var(--accent);color:#fff}
+  .menu{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 14px}
+  .menu button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);padding:9px 16px;border-radius:10px;font-size:14px}
+  .menu button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .menu .badge{display:inline-block;background:var(--red);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;margin-left:6px;font-weight:700}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .card h2{margin:0 0 10px;font-size:15px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .field{flex:1;min-width:150px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:9px 10px;border-radius:9px;font-size:14px;outline:none;font-family:inherit}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+  button{cursor:pointer;border:none;border-radius:10px;font-size:14px;font-weight:600;padding:10px 16px;background:var(--accent);color:#fff;transition:.15s}
+  button:hover{background:var(--accent2)}
+  button.ghost{background:var(--chip);color:var(--txt);border:1px solid var(--line)}
+  button.ghost:hover{background:var(--panel2)}
+  button.sm{padding:6px 11px;font-size:13px}
+  button.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+  .drop{border:2px dashed var(--line);border-radius:14px;padding:34px 16px;text-align:center;color:var(--muted);
+    transition:.15s;cursor:pointer;background:var(--panel2)}
+  .drop.drag{border-color:var(--accent);color:var(--txt);background:#12203a}
+  .drop b{color:var(--txt)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  .muted{color:var(--muted)}
+  .pill{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;margin:2px 4px 2px 0}
+  .stat{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+  .stat .b{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:110px}
+  .stat .b .n{font-size:22px;font-weight:800}
+  .stat .b .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .drivers{display:grid;grid-template-columns:1fr;gap:10px}
+  .drv{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:999px}
+  .tag.fijo{background:#123023;color:#7ee2a8;border:1px solid #1f5238}
+  .tag.fr{background:#3a2412;color:#f7c073;border:1px solid #6b4318}
+  .route{margin-top:16px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .route .rhd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    padding:12px 14px;background:var(--panel2)}
+  .route .rhd .who{font-weight:800;font-size:16px}
+  .margin.pos{color:var(--green)} .margin.low{color:var(--amber)} .margin.neg{color:var(--red)}
+  .batch{border:1px solid var(--line);border-radius:10px;margin:10px 0;overflow:hidden}
+  .batch .bhd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:#12151c}
+  .batch .bhd b{font-size:14px}
+  .batch ol{margin:0;padding:6px 12px 12px 34px;font-size:13px}
+  .batch ol li{padding:3px 0}
+  .batch .acts{padding:0 12px 12px;display:flex;gap:8px;flex-wrap:wrap}
+  .maps{background:#0b8043}.maps:hover{background:#0a7038}
+  .hide{display:none!important}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;border:1px solid var(--line);
+    padding:12px 18px;border-radius:10px;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90%;text-align:center}
+  .warn{background:var(--redbg);border:1px solid var(--red);color:#ffb4b4;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:8px}
+  .ok{background:var(--greenbg);border:1px solid #1f5238;color:#7ee2a8;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:8px}
+  details.cfg summary{cursor:pointer;color:var(--muted);font-size:13px;user-select:none}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+
+  /* ---- Vue chauffeur / Vista conductor ---- */
+  .driverview{max-width:640px}
+  .dv-hd{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;position:sticky;top:0;z-index:5}
+  .dv-hd .big{font-size:20px;font-weight:800}
+  .dv-batch{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
+  .dv-batch .h{padding:12px 14px;background:var(--panel2);display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .dv-stop{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-top:1px solid var(--line)}
+  .dv-stop input[type=checkbox]{width:24px;height:24px;margin-top:2px;flex:0 0 auto}
+  .dv-stop .num{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--chip);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:1px}
+  .dv-stop .a{flex:1}
+  .dv-stop .a .adr{font-weight:600}
+  .dv-stop .a .sub{font-size:12px;color:var(--muted)}
+  .dv-stop.done .a{opacity:.45;text-decoration:line-through}
+  .dv-stop.done .num{background:var(--greenbg);border-color:#1f5238;color:#7ee2a8}
+  .dv-batch .go{display:block;text-align:center;background:#0b8043;color:#fff;padding:12px;font-weight:700;text-decoration:none}
+  .progress{height:8px;background:var(--panel2);border-radius:999px;overflow:hidden;margin-top:8px}
+  .progress i{display:block;height:100%;background:var(--green);width:0}
+  .report-btn{width:100%;margin-top:6px;background:#7c3aed}.report-btn:hover{background:#6d28d9}
+  @media print{
+    body{background:#fff;color:#000}
+    .noprint{display:none!important}
+    .route{page-break-inside:avoid;border-color:#ccc}
+    .card{border-color:#ccc}
+    a{color:#000}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ============================================================
+   PALANTIR — Organisateur de tournées / Organizador de rutas
+   Speedaf / RXN · Vaud. Un seul fichier, sans serveur. Bilingue FR/ES.
+   ============================================================ */
+
+/* ---------------- i18n ---------------- */
+let LANG = (()=>{try{return localStorage.getItem('palantir_lang')||'fr';}catch(e){return 'fr';}})();
+const T = {
+  sub:{fr:"Organisateur de tournées · Speedaf / RXN · Vaud", es:"Organizador de rutas · Speedaf / RXN · Vaud"},
+  m_rutas:{fr:"Tournées du jour", es:"Rutas del día"},
+  m_hist:{fr:"Historique", es:"Historial"},
+  m_undel:{fr:"Non livrés", es:"No entregados"},
+  cfg:{fr:"⚙️ Configuration (dépôt, prix, chauffeurs)", es:"⚙️ Configuración (depósito, precio, conductores)"},
+  depot:{fr:"Dépôt (origine des tournées)", es:"Depósito (origen de rutas)"},
+  price:{fr:"Prix facturé par colis (CHF)", es:"Precio por paquete (CHF)"},
+  batch:{fr:"Arrêts par groupe", es:"Paradas por grupo"},
+  perDriver:{fr:"Colis par chauffeur", es:"Paquetes por conductor"},
+  extra:{fr:"Coût suppl./colis (optionnel)", es:"Coste extra/paquete (opcional)"},
+  drivers:{fr:"Chauffeurs", es:"Conductores"},
+  addFixed:{fr:"+ Chauffeur fixe", es:"+ Conductor fijo"},
+  addFr:{fr:"+ Chauffeur français", es:"+ Conductor francés"},
+  tagFixed:{fr:"FIXE", es:"FIJO"},
+  tagFr:{fr:"FRANÇAIS", es:"FRANCÉS"},
+  rate:{fr:"tarif", es:"tarifa"}, perColis:{fr:"CHF/colis", es:"CHF/paq"}, day:{fr:"jour", es:"día"},
+  remove:{fr:"Retirer", es:"Quitar"}, newFixed:{fr:"Nouveau fixe", es:"Nuevo fijo"}, newFr:{fr:"Nouveau français", es:"Nuevo francés"},
+  step1:{fr:"1 · Charger l'Excel de Speedaf", es:"1 · Cargar el Excel de Speedaf"},
+  drop:{fr:"Glissez ici le fichier <b>RXN-Pick-up Forecast</b> (.xlsx)<br><span class='muted'>ou cliquez pour le choisir</span>",
+        es:"Arrastra aquí el archivo <b>RXN-Pick-up Forecast</b> (.xlsx)<br><span class='muted'>o haz clic para elegirlo</span>"},
+  reading:{fr:"Lecture…", es:"Leyendo…"}, readErr:{fr:"Impossible de lire le fichier : ", es:"No pude leer el archivo: "},
+  step2:{fr:"2 · Colonnes détectées", es:"2 · Columnas detectadas"},
+  mapperHelp:{fr:"Vérifiez que chaque donnée pointe vers la bonne colonne.", es:"Verifica que cada dato apunte a la columna correcta."},
+  c_tracking:{fr:"Tracking", es:"Tracking"}, c_npa:{fr:"Code postal (NPA)", es:"Código postal (NPA)"},
+  c_city:{fr:"Ville", es:"Ciudad"}, c_address:{fr:"Adresse", es:"Dirección"}, c_prov:{fr:"Province", es:"Provincia"}, c_weight:{fr:"Poids", es:"Peso"},
+  none:{fr:"— aucune —", es:"— ninguna —"},
+  preview:{fr:"Aperçu", es:"Vista previa"}, colis:{fr:"Colis", es:"Paquetes"}, zones:{fr:"Zones (NPA)", es:"Zonas (NPA)"}, cities:{fr:"Villes", es:"Ciudades"},
+  step3:{fr:"3 · Organiser les tournées", es:"3 · Organizar las rutas"},
+  strategy:{fr:"On trie par code postal (NPA), on remplit d'abord les fixes (moins chers) au maximum ; les Français ne reçoivent que le surplus. Les colis sont numérotés en série (1–10, 11–20…).",
+            es:"Se ordena por código postal (NPA), se llena primero a los fijos (más baratos) al máximo; los franceses solo reciben lo que sobra. Los paquetes se numeran en serie (1–10, 11–20…)."},
+  organizeBtn:{fr:"🚀 Organiser et répartir", es:"🚀 Organizar y repartir"},
+  summaryTitle:{fr:"Résumé de la journée", es:"Resumen del día"},
+  routes:{fr:"Tournées", es:"Rutas"}, revenue:{fr:"Revenu", es:"Ingreso"}, cost:{fr:"Coût", es:"Coste"}, margin:{fr:"Marge", es:"Margen"},
+  printAll:{fr:"🖨️ Tout imprimer", es:"🖨️ Imprimir todo"},
+  noFrench:{fr:"✅ Aucun chauffeur français : tout est livré par les fixes. Coût minimal.", es:"✅ Sin conductores franceses: todo lo llevan los fijos. Coste mínimo."},
+  copyLink:{fr:"🔗 Copier le lien du chauffeur", es:"🔗 Copiar el link del conductor"},
+  openDriver:{fr:"👁️ Ouvrir la vue chauffeur", es:"👁️ Abrir vista conductor"},
+  group:{fr:"Groupe", es:"Grupo"}, stops:{fr:"arrêts", es:"paradas"}, groups:{fr:"groupes", es:"grupos"}, colisWord:{fr:"colis", es:"paquetes"},
+  depotLabel:{fr:"Dépôt :", es:"Depósito:"}, delivered:{fr:"livrés", es:"entregados"},
+  invalidLink:{fr:"Lien invalide.", es:"Link inválido."},
+  loadFirst:{fr:"Chargez d'abord un Excel", es:"Carga primero un Excel"},
+  activateDriver:{fr:"Activez au moins un chauffeur", es:"Activa al menos un conductor"},
+  copied:{fr:"Lien copié ✔", es:"Link copiado ✔"},
+  driverInstr:{fr:"Ouvrez chaque groupe dans Google Maps et suivez l'ordre des numéros. Cochez chaque colis livré.",
+               es:"Abre cada grupo en Google Maps y sigue el orden de los números. Marca cada paquete entregado."},
+  sendReport:{fr:"📤 Copier le rapport (non livrés)", es:"📤 Copiar reporte (no entregados)"},
+  reportCopied:{fr:"Rapport copié — envoyez-le par WhatsApp au bureau", es:"Reporte copiado — envíalo por WhatsApp a la oficina"},
+  allDelivered:{fr:"Tout est livré 🎉", es:"¡Todo entregado! 🎉"},
+  histTitle:{fr:"Historique des journées", es:"Historial de días"},
+  histEmpty:{fr:"Aucune journée enregistrée. Organisez des tournées pour créer l'historique.", es:"No hay días guardados. Organiza rutas para crear el historial."},
+  reopen:{fr:"Rouvrir", es:"Reabrir"}, del:{fr:"Supprimer", es:"Borrar"},
+  colDate:{fr:"Date", es:"Fecha"}, colDriver:{fr:"Chauffeur", es:"Conductor"},
+  undelTitle:{fr:"Colis non livrés", es:"Paquetes no entregados"},
+  undelHelp:{fr:"Collez ici le lien de rapport que le chauffeur vous renvoie par WhatsApp, puis « Charger ».", es:"Pega aquí el link de reporte que el conductor te reenvía por WhatsApp, y pulsa «Cargar»."},
+  loadReport:{fr:"Charger le rapport", es:"Cargar reporte"},
+  reportLoaded:{fr:"Rapport chargé ✔", es:"Reporte cargado ✔"},
+  reportErr:{fr:"Lien de rapport invalide", es:"Link de reporte inválido"},
+  noReports:{fr:"Aucun rapport chargé pour le moment.", es:"Aún no hay reportes cargados."},
+  colDelivered:{fr:"Livrés", es:"Entregados"}, colUndel:{fr:"Non livrés", es:"No entregados"}, colTotal:{fr:"Total", es:"Total"},
+  clearAll:{fr:"Tout effacer", es:"Borrar todo"},
+  phone:{fr:"Tél. WhatsApp", es:"Tel. WhatsApp"},
+  waBtn:{fr:"📱 Envoyer par WhatsApp", es:"📱 Enviar por WhatsApp"},
+  waNoPhone:{fr:"Ajoutez le n° du chauffeur dans Configuration pour l'envoi direct — sinon choisissez le contact.", es:"Añade el nº del conductor en Configuración para envío directo — si no, elige el contacto."},
+};
+function fWaMsg(name,date,n,link){
+  return LANG==='fr'
+    ? `🚚 ${name}, voici ta tournée du ${date} (${n} colis). Ouvre ce lien sur ton téléphone : ${link}`
+    : `🚚 ${name}, esta es tu ruta del ${date} (${n} paquetes). Abre este enlace en tu móvil: ${link}`;
+}
+function L(k){ return (T[k]&&T[k][LANG])||k; }
+function fShowing(n){ return LANG==='fr'?`Affichage de 8 sur ${n}.`:`Mostrando 8 de ${n}.`; }
+function fRevMinus(r,c){ return LANG==='fr'?`revenu ${r} − coût ${c}`:`ingreso ${r} − coste ${c}`; }
+function fFrNote(fp,fc,mv,fs,sv){
+  if(LANG==='fr') return `Les Français livrent <b>${fp}</b> colis (coût ${fc}). `+(mv>0?`⚠️ Il reste <b>${fs}</b> places libres chez les fixes : économisez jusqu'à <b>${sv}</b>/jour.`:`Les fixes sont pleins : minimum de Français.`);
+  return `Los franceses llevan <b>${fp}</b> paquetes (coste ${fc}). `+(mv>0?`⚠️ Quedan <b>${fs}</b> huecos libres en los fijos: ahorra hasta <b>${sv}</b>/día.`:`Los fijos están llenos: mínimo de franceses.`);
+}
+function fOverflow(n){ return LANG==='fr'?`Il manque des chauffeurs pour ${n} colis. Le surplus a été ajouté au dernier. Activez un chauffeur de plus.`:`Faltan conductores para ${n} paquetes. El resto se cargó al último. Activa un conductor más.`; }
+
+/* ---------------- config + stockage ---------------- */
+const CFG_KEY='palantir_cfg_v1', HIST_KEY='palantir_hist_v1', REP_KEY='palantir_reports_v1';
+/* Valeurs par défaut génériques (aucune donnée réelle dans le code public).
+   Renseignez chauffeurs et prix dans Configuration : ils sont enregistrés
+   uniquement dans VOTRE navigateur (localStorage), jamais dans le code. */
+const DEFAULT_CFG = {
+  depot:'Renens, Suisse', price:0, batchSize:10, perDriver:130, extraPerParcel:0,
+  drivers:[
+    {name:'Chauffeur 1',type:'fijo',day:0,active:true},
+    {name:'Chauffeur 2',type:'fijo',day:0,active:true},
+    {name:'Chauffeur 3',type:'fijo',day:0,active:true},
+    {name:'Chauffeur 4',type:'fijo',day:0,active:true},
+    {name:'Externe 1',type:'fr',rate:0,active:true},
+    {name:'Externe 2',type:'fr',rate:0,active:true},
+  ]
+};
+let CFG=loadCfg();
+let PARCELS=[], COLMAP=null, RAW=null, ROUTES=[], LAST_OVERFLOW=false, TAB='rutas';
+
+function loadCfg(){ try{const c=JSON.parse(localStorage.getItem(CFG_KEY)); if(c&&c.drivers) return Object.assign({},DEFAULT_CFG,c);}catch(e){} return JSON.parse(JSON.stringify(DEFAULT_CFG)); }
+function saveCfg(){ try{localStorage.setItem(CFG_KEY,JSON.stringify(CFG));}catch(e){} }
+function getHist(){ try{return JSON.parse(localStorage.getItem(HIST_KEY))||[];}catch(e){return [];} }
+function setHist(h){ try{localStorage.setItem(HIST_KEY,JSON.stringify(h.slice(0,40)));}catch(e){} }
+function getReports(){ try{return JSON.parse(localStorage.getItem(REP_KEY))||[];}catch(e){return [];} }
+function setReports(r){ try{localStorage.setItem(REP_KEY,JSON.stringify(r.slice(0,200)));}catch(e){} }
+function setLang(l){ LANG=l; try{localStorage.setItem('palantir_lang',l);}catch(e){}
+  if(location.hash.startsWith('#r=')) renderDriver();
+  else { renderOrganizer(); if(RAW) detectAndMap(); if(ROUTES.length) organize(); }
+}
+
+/* ---------------- utilitaires ---------------- */
+const $=s=>document.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+const chf=n=>(Math.round(n*100)/100).toLocaleString('fr-CH',{minimumFractionDigits:2,maximumFractionDigits:2})+' CHF';
+function toast(m){ const t=el('div','toast',m); document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+function norm(s){ return (s==null?'':''+s).trim(); }
+function b64enc(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))); }
+function b64dec(s){ return JSON.parse(decodeURIComponent(escape(atob(s)))); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function langToggle(){ return `<div class="lang noprint"><button class="${LANG==='fr'?'on':''}" onclick="setLang('fr')">FR</button><button class="${LANG==='es'?'on':''}" onclick="setLang('es')">ES</button></div>`; }
+function mapsLink(stops){
+  const fmt=s=>encodeURIComponent(`${s.address}, ${s.npa} ${s.city}, Suisse`);
+  const origin=encodeURIComponent(CFG.depot);
+  if(stops.length===1) return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${fmt(stops[0])}&travelmode=driving`;
+  const dest=fmt(stops[stops.length-1]); const way=stops.slice(0,-1).map(fmt).join('%7C');
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${way}&travelmode=driving`;
+}
+
+/* ---------------- routeur ---------------- */
+if(location.hash.startsWith('#r=')) renderDriver();
+else renderOrganizer();
+
+/* ============================================================
+   VUE CHAUFFEUR / VISTA CONDUCTOR  (uniquement les tournées)
+   ============================================================ */
+function renderDriver(){
+  let data;
+  try{ data=b64dec(location.hash.slice(3)); }catch(e){ $('#app').innerHTML='<p class="warn">'+L('invalidLink')+'</p>'; return; }
+  if(data.lang) LANG=data.lang;
+  document.title=(LANG==='fr'?'Tournée · ':'Ruta · ')+data.n;
+  const app=$('#app'); app.className='wrap driverview';
+  const total=data.b.reduce((a,b)=>a+b.length,0);
+  const storeKey='dv_done_'+(data.id||data.n);
+  let done={}; try{done=JSON.parse(localStorage.getItem(storeKey))||{};}catch(e){}
+
+  app.innerHTML='';
+  const hd=el('div','dv-hd');
+  hd.innerHTML=`<div style="display:flex;align-items:center"><div class="big">🚚 ${data.n}</div>${langToggle()}</div>
+    <div class="muted">${total} ${L('colisWord')} · ${data.b.length} ${L('groups')} · ${L('depotLabel')} ${data.d||CFG.depot}</div>
+    <div class="muted" style="font-size:12px;margin-top:6px">${L('driverInstr')}</div>
+    <div class="progress"><i id="prog"></i></div>
+    <div class="muted" id="progtxt" style="font-size:12px;margin-top:4px"></div>`;
+  app.appendChild(hd);
+
+  let counter=0;
+  data.b.forEach((batch,bi)=>{
+    const start=counter+1, end=counter+batch.length;
+    const box=el('div','dv-batch');
+    const h=el('div','h'); h.innerHTML=`<b>${L('group')} ${bi+1} · ${start}–${end}</b><span class="muted">${batch.length} ${L('stops')}</span>`;
+    box.appendChild(h);
+    batch.forEach((s,si)=>{
+      counter++;
+      const id=bi+'_'+si;
+      const st=el('div','dv-stop'+(done[id]?' done':''));
+      st.innerHTML=`<div class="num">${counter}</div>
+        <input type="checkbox" ${done[id]?'checked':''} data-id="${id}">
+        <div class="a"><div class="adr">${s.a}</div>
+        <div class="sub">${s.p} ${s.c} · <span class="muted">${s.t||''}</span></div></div>`;
+      st.querySelector('input').addEventListener('change',ev=>{
+        done[id]=ev.target.checked; localStorage.setItem(storeKey,JSON.stringify(done));
+        st.classList.toggle('done',ev.target.checked); updateProg();
+      });
+      box.appendChild(st);
+    });
+    const stops=batch.map(s=>({address:s.a,npa:s.p,city:s.c}));
+    const go=el('a','go'); go.href=mapsLink(stops); go.target='_blank';
+    go.textContent=(LANG==='fr'?`📍 Ouvrir le groupe ${bi+1} dans Google Maps`:`📍 Abrir el grupo ${bi+1} en Google Maps`);
+    box.appendChild(go);
+    app.appendChild(box);
+  });
+
+  // bouton rapport / botón reporte
+  const rep=el('button','report-btn noprint');
+  rep.textContent=L('sendReport');
+  rep.onclick=()=>{
+    const undel=[]; let c=0;
+    data.b.forEach((batch,bi)=>batch.forEach((s,si)=>{ c++; if(!done[bi+'_'+si]) undel.push({a:s.a,p:s.p,c:s.c,t:s.t,num:c}); }));
+    const report={n:data.n,date:today(),tot:total,del:total-undel.length,u:undel};
+    const link=location.origin+location.pathname+'#report='+b64enc(report);
+    navigator.clipboard.writeText(link); toast(L('reportCopied'));
+  };
+  app.appendChild(rep);
+
+  function updateProg(){ const d=Object.values(done).filter(Boolean).length;
+    $('#prog').style.width=(total?(d/total*100):0)+'%';
+    $('#progtxt').textContent=`${d} / ${total} ${L('delivered')}`; }
+  updateProg();
+}
+
+/* ============================================================
+   VUE ORGANISATEUR — avec menu / con menú
+   ============================================================ */
+function renderOrganizer(){
+  const app=$('#app'); app.className='wrap';
+  const rep=getReports().filter(r=>r.date===today());
+  const undelToday=rep.reduce((a,r)=>a+(r.u?r.u.length:0),0);
+  app.innerHTML=`
+   <header class="top">
+     <div class="logo">PAL<span>ANTIR</span></div>
+     <div class="sub">${L('sub')}</div>
+     ${langToggle()}
+   </header>
+   <div class="menu noprint">
+     <button class="${TAB==='rutas'?'on':''}" onclick="goTab('rutas')">🚚 ${L('m_rutas')}</button>
+     <button class="${TAB==='hist'?'on':''}" onclick="goTab('hist')">📅 ${L('m_hist')}</button>
+     <button class="${TAB==='undel'?'on':''}" onclick="goTab('undel')">📦 ${L('m_undel')}${undelToday?`<span class="badge">${undelToday}</span>`:''}</button>
+   </div>
+   <div id="tab"></div>`;
+  renderTab();
+}
+function goTab(t){ TAB=t; renderTab(); document.querySelectorAll('.menu button').forEach(b=>b.classList.remove('on'));
+  const idx={rutas:0,hist:1,undel:2}[t]; const btns=document.querySelectorAll('.menu button'); if(btns[idx]) btns[idx].classList.add('on'); }
+
+function renderTab(){
+  const c=$('#tab');
+  if(TAB==='hist'){ renderHistory(c); return; }
+  if(TAB==='undel'){ renderUndelivered(c); return; }
+  // --- rutas ---
+  c.innerHTML=`
+   <div class="card">
+     <details class="cfg"><summary>${L('cfg')}</summary>
+       <div style="margin-top:12px">
+         <div class="row">
+           <div class="field"><label>${L('depot')}</label><input id="c_depot" value="${CFG.depot}"></div>
+           <div class="field"><label>${L('price')}</label><input id="c_price" type="number" step="0.01" value="${CFG.price}"></div>
+           <div class="field"><label>${L('batch')}</label><input id="c_batch" type="number" value="${CFG.batchSize}"></div>
+           <div class="field"><label>${L('perDriver')}</label><input id="c_pd" type="number" value="${CFG.perDriver}"></div>
+           <div class="field"><label>${L('extra')}</label><input id="c_extra" type="number" step="0.01" value="${CFG.extraPerParcel}"></div>
+         </div>
+         <h2 style="margin-top:14px">${L('drivers')}</h2>
+         <div id="drvlist" class="drivers"></div>
+         <div style="margin-top:8px"><button class="ghost sm" id="addFijo">${L('addFixed')}</button>
+           <button class="ghost sm" id="addFr">${L('addFr')}</button></div>
+       </div>
+     </details>
+   </div>
+   <div class="card"><h2>${L('step1')}</h2>
+     <div class="drop" id="drop">${L('drop')}</div>
+     <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hide"><div id="loadmsg"></div>
+   </div>
+   <div id="mapper" class="card hide"></div>
+   <div id="preview" class="card hide"></div>
+   <div id="organize" class="card hide"><h2>${L('step3')}</h2>
+     <p class="muted" style="margin-top:0">${L('strategy')}</p>
+     <button id="btnOrg">${L('organizeBtn')}</button></div>
+   <div id="summary"></div><div id="results"></div>`;
+  renderDrivers(); wireConfig(); wireDrop();
+  if(RAW) detectAndMap();
+  if(ROUTES.length) renderResults(LAST_OVERFLOW);
+}
+
+function renderDrivers(){
+  const box=$('#drvlist'); if(!box) return; box.innerHTML='';
+  CFG.drivers.forEach((d,i)=>{
+    const row=el('div','drv'); const isfr=d.type==='fr';
+    row.innerHTML=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <input type="checkbox" ${d.active?'checked':''} data-i="${i}" class="dv-act" style="width:auto">
+        <input value="${d.name}" data-i="${i}" class="dv-name" style="max-width:150px">
+        <span class="tag ${isfr?'fr':'fijo'}">${isfr?L('tagFr'):L('tagFixed')}</span>
+        ${isfr?`<span class="muted">${L('rate')}</span><input type="number" step="0.01" value="${d.rate}" data-i="${i}" class="dv-rate" style="max-width:80px"><span class="muted">${L('perColis')}</span>`
+              :`<span class="muted">${L('day')}</span><input type="number" value="${d.day}" data-i="${i}" class="dv-day" style="max-width:80px"><span class="muted">CHF</span>`}
+        <span class="muted">${L('phone')}</span><input value="${d.phone||''}" data-i="${i}" class="dv-phone" placeholder="41791234567" style="max-width:130px">
+        <button class="danger sm dv-del" data-i="${i}" style="margin-left:auto">${L('remove')}</button></div>`;
+    box.appendChild(row);
+  });
+  box.querySelectorAll('.dv-act').forEach(x=>x.onchange=e=>{CFG.drivers[e.target.dataset.i].active=e.target.checked;saveCfg();});
+  box.querySelectorAll('.dv-name').forEach(x=>x.onchange=e=>{CFG.drivers[e.target.dataset.i].name=e.target.value;saveCfg();});
+  box.querySelectorAll('.dv-rate').forEach(x=>x.onchange=e=>{CFG.drivers[e.target.dataset.i].rate=+e.target.value;saveCfg();});
+  box.querySelectorAll('.dv-day').forEach(x=>x.onchange=e=>{CFG.drivers[e.target.dataset.i].day=+e.target.value;saveCfg();});
+  box.querySelectorAll('.dv-phone').forEach(x=>x.onchange=e=>{CFG.drivers[e.target.dataset.i].phone=e.target.value.trim();saveCfg();});
+  box.querySelectorAll('.dv-del').forEach(x=>x.onclick=e=>{CFG.drivers.splice(e.target.dataset.i,1);saveCfg();renderDrivers();});
+}
+function wireConfig(){
+  const bind=(id,key,num)=>{const e=$(id); if(!e)return; e.onchange=()=>{CFG[key]=num?+e.value:e.value;saveCfg();};};
+  bind('#c_depot','depot',false); bind('#c_price','price',true); bind('#c_batch','batchSize',true); bind('#c_pd','perDriver',true); bind('#c_extra','extraPerParcel',true);
+  $('#addFijo').onclick=()=>{CFG.drivers.push({name:L('newFixed'),type:'fijo',day:0,active:true});saveCfg();renderDrivers();};
+  $('#addFr').onclick=()=>{CFG.drivers.push({name:L('newFr'),type:'fr',rate:0,active:true});saveCfg();renderDrivers();};
+}
+
+/* ---------------- chargement fichier ---------------- */
+function wireDrop(){
+  const drop=$('#drop'), file=$('#file'); if(!drop) return;
+  drop.onclick=()=>file.click();
+  file.onchange=e=>{ if(e.target.files[0]) readFile(e.target.files[0]); };
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+  drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+}
+function readFile(f){
+  $('#loadmsg').innerHTML='<p class="muted">'+L('reading')+'</p>';
+  const r=new FileReader();
+  r.onload=ev=>{ try{ const wb=XLSX.read(ev.target.result,{type:'array'}); RAW=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}); detectAndMap(); }
+    catch(err){ $('#loadmsg').innerHTML='<p class="warn">'+L('readErr')+err.message+'</p>'; } };
+  r.readAsArrayBuffer(f);
+}
+function detectAndMap(){
+  if(!$('#mapper')) return;
+  let headerRow=-1;
+  for(let i=0;i<Math.min(RAW.length,20);i++){ const j=RAW[i].map(c=>(''+c).toLowerCase()).join('|'); if(j.includes('address')||j.includes('adresse')){headerRow=i;break;} }
+  if(headerRow<0){ for(let i=0;i<RAW.length;i++){ if(RAW[i].filter(c=>norm(c)).length>=4){headerRow=i;break;} } }
+  const headers=RAW[headerRow].map(norm);
+  const guess=(...ks)=>{ for(let j=0;j<headers.length;j++){ const h=headers[j].toLowerCase(); if(ks.some(k=>h.includes(k))) return j; } return -1; };
+  COLMAP={ headerRow, tracking:guess('tracking','waybill','suivi','no.'), npa:guess('post code','postcode','npa','code postal','zip','cp'),
+    prov:guess('province','peovince','canton'), city:guess('city','ville','ciudad','localit'),
+    address:guess('address','adresse','direccion','rue','street'), weight:guess('weight','poids','peso') };
+  buildMapper(headers); applyMap();
+}
+function buildMapper(headers){
+  const m=$('#mapper'); if(!m) return; m.classList.remove('hide');
+  const opts=sel=>headers.map((h,j)=>`<option value="${j}" ${sel===j?'selected':''}>${h||('Col '+j)}</option>`).join('');
+  m.innerHTML=`<h2>${L('step2')}</h2><p class="muted" style="margin-top:0">${L('mapperHelp')}</p>
+   <div class="grid2">${[['tracking',L('c_tracking')],['npa',L('c_npa')],['city',L('c_city')],['address',L('c_address')],['prov',L('c_prov')],['weight',L('c_weight')]]
+     .map(([k,l])=>`<div class="field"><label>${l}</label><select data-k="${k}"><option value="-1">${L('none')}</option>${opts(COLMAP[k])}</select></div>`).join('')}</div>`;
+  m.querySelectorAll('select').forEach(s=>{ s.value=COLMAP[s.dataset.k]; s.onchange=()=>{COLMAP[s.dataset.k]=+s.value;applyMap();}; });
+}
+function applyMap(){
+  PARCELS=[];
+  for(let i=COLMAP.headerRow+1;i<RAW.length;i++){ const row=RAW[i]; if(!row) continue;
+    const address=norm(row[COLMAP.address]); if(!address) continue;
+    PARCELS.push({ tracking:norm(row[COLMAP.tracking]), address, npa:norm(row[COLMAP.npa]), city:norm(row[COLMAP.city]), prov:norm(row[COLMAP.prov]), weight:norm(row[COLMAP.weight]) }); }
+  showPreview();
+}
+function showPreview(){
+  const p=$('#preview'); if(!p) return; p.classList.remove('hide');
+  const npas=[...new Set(PARCELS.map(x=>x.npa))].filter(Boolean);
+  const cities=[...new Set(PARCELS.map(x=>x.city))].filter(Boolean);
+  p.innerHTML=`<h2>${L('preview')}</h2><div class="stat">
+      <div class="b"><div class="n">${PARCELS.length}</div><div class="l">${L('colis')}</div></div>
+      <div class="b"><div class="n">${npas.length}</div><div class="l">${L('zones')}</div></div>
+      <div class="b"><div class="n">${cities.length}</div><div class="l">${L('cities')}</div></div></div>
+    <div style="margin-top:8px">${cities.slice(0,12).map(c=>`<span class="pill">${c}</span>`).join('')}</div>
+    <table style="margin-top:10px"><thead><tr><th>${L('c_tracking')}</th><th>NPA</th><th>${L('c_city')}</th><th>${L('c_address')}</th></tr></thead>
+    <tbody>${PARCELS.slice(0,8).map(s=>`<tr><td class="muted">${s.tracking}</td><td>${s.npa}</td><td>${s.city}</td><td>${s.address}</td></tr>`).join('')}</tbody></table>
+    <p class="muted">${fShowing(PARCELS.length)}</p>`;
+  $('#organize').classList.remove('hide'); $('#btnOrg').onclick=organize;
+}
+
+/* ---------------- cœur : organiser ---------------- */
+function mkRoute(drv,chunk){ const batches=[]; for(let i=0;i<chunk.length;i+=CFG.batchSize) batches.push(chunk.slice(i,i+CFG.batchSize)); return {driver:drv,parcels:chunk,batches}; }
+function organize(){
+  if(!PARCELS.length){toast(L('loadFirst'));return;}
+  const active=CFG.drivers.filter(d=>d.active); if(!active.length){toast(L('activateDriver'));return;}
+  const sorted=[...PARCELS].sort((a,b)=>{ const na=(''+a.npa),nb=(''+b.npa); if(na!==nb) return na<nb?-1:1; return a.address<b.address?-1:1; });
+  const fixed=active.filter(d=>d.type!=='fr'), french=active.filter(d=>d.type==='fr');
+  const cap=Math.max(1,CFG.perDriver); ROUTES=[]; let idx=0, overflow=false;
+  fixed.forEach(drv=>{ if(idx>=sorted.length) return; const chunk=sorted.slice(idx,idx+cap); idx+=chunk.length; if(chunk.length) ROUTES.push(mkRoute(drv,chunk)); });
+  if(idx<sorted.length){ const rest=sorted.slice(idx);
+    if(french.length){ const per=Math.ceil(rest.length/french.length); let j=0; french.forEach(drv=>{ const chunk=rest.slice(j,j+per); j+=chunk.length; if(chunk.length) ROUTES.push(mkRoute(drv,chunk)); }); }
+    else if(ROUTES.length){ overflow=true; const last=ROUTES[ROUTES.length-1]; last.parcels=last.parcels.concat(rest); last.batches=[]; for(let i=0;i<last.parcels.length;i+=CFG.batchSize) last.batches.push(last.parcels.slice(i,i+CFG.batchSize)); } }
+  // numérotation en série par chauffeur
+  ROUTES.forEach(r=>{ let c=0; r.parcels.forEach(p=>{ p.seq=++c; }); });
+  LAST_OVERFLOW=overflow; saveHistory(); renderResults(overflow);
+}
+function driverCost(drv,n){ return drv.type==='fr'?drv.rate*n:(drv.day||0); }
+
+function saveHistory(){
+  const totP=ROUTES.reduce((a,r)=>a+r.parcels.length,0);
+  const rev=CFG.price*totP; let cost=0; ROUTES.forEach(r=>cost+=driverCost(r.driver,r.parcels.length)+CFG.extraPerParcel*r.parcels.length);
+  const entry={ date:today(), ts:Date.now(), colis:totP, routes:ROUTES.length, rev, cost, margin:rev-cost,
+    drivers:ROUTES.map(r=>({name:r.driver.name,type:r.driver.type,colis:r.parcels.length})),
+    link:driverLinksBundle() };
+  const h=getHist(); const i=h.findIndex(e=>e.date===entry.date);
+  if(i>=0) h[i]=entry; else h.unshift(entry);
+  setHist(h);
+}
+function driverLinksBundle(){ return ROUTES.map(r=>({name:r.driver.name,link:driverLink(r)})); }
+
+function renderResults(overflow){
+  const sum=$('#summary'), res=$('#results'); if(!sum||!res) return;
+  let totRev=0,totCost=0,totExtra=0,totP=0,frP=0,frC=0;
+  ROUTES.forEach(r=>{ const n=r.parcels.length; totP+=n; totRev+=CFG.price*n; totCost+=driverCost(r.driver,n); totExtra+=CFG.extraPerParcel*n; if(r.driver.type==='fr'){frP+=n;frC+=driverCost(r.driver,n);} });
+  const margin=totRev-totCost-totExtra;
+  const fixedActive=CFG.drivers.filter(d=>d.active&&d.type!=='fr');
+  const freeSlots=Math.max(0,fixedActive.length*CFG.perDriver - ROUTES.filter(r=>r.driver.type!=='fr').reduce((a,r)=>a+r.parcels.length,0));
+  const frActive=CFG.drivers.filter(d=>d.active&&d.type==='fr');
+  const frRate=frActive.length?frActive.reduce((a,d)=>a+(+d.rate||0),0)/frActive.length:0;
+  const moveable=Math.min(freeSlots,frP); const saving=moveable*frRate;
+  sum.innerHTML=`<div class="card"><h2>${L('summaryTitle')} · ${today()}</h2><div class="stat">
+      <div class="b"><div class="n">${totP}</div><div class="l">${L('colis')}</div></div>
+      <div class="b"><div class="n">${ROUTES.length}</div><div class="l">${L('routes')}</div></div>
+      <div class="b"><div class="n">${chf(totRev)}</div><div class="l">${L('revenue')}</div></div>
+      <div class="b"><div class="n">${chf(totCost+totExtra)}</div><div class="l">${L('cost')}</div></div>
+      <div class="b"><div class="n margin ${margin>0?'pos':'neg'}">${chf(margin)}</div><div class="l">${L('margin')}</div></div></div>
+      ${frP>0?`<div class="ok">${fFrNote(frP,chf(frC),moveable,freeSlots,chf(saving))}</div>`:`<div class="ok">${L('noFrench')}</div>`}
+      ${overflow?`<div class="warn">${fOverflow(totP)}</div>`:''}
+      <div style="margin-top:10px" class="noprint"><button class="ghost sm" onclick="window.print()">${L('printAll')}</button></div></div>`;
+  res.innerHTML='';
+  ROUTES.forEach((r,ri)=>{
+    const n=r.parcels.length, rev=CFG.price*n, cost=driverCost(r.driver,n), extra=CFG.extraPerParcel*n, mar=rev-cost-extra;
+    const mcls=mar<=0?'neg':(mar<80?'low':'pos'); const isfr=r.driver.type==='fr';
+    const box=el('div','route');
+    box.innerHTML=`<div class="rhd"><div>
+        <div class="who">🚚 ${r.driver.name} <span class="tag ${isfr?'fr':'fijo'}">${isfr?L('tagFr'):L('tagFixed')}</span></div>
+        <div class="muted">${n} ${L('colisWord')} · ${r.batches.length} ${L('groups')}</div></div>
+        <div style="text-align:right"><div class="margin ${mcls}" style="font-size:18px;font-weight:800">${chf(mar)}</div>
+        <div class="muted" style="font-size:12px">${fRevMinus(chf(rev),chf(cost+extra))}</div></div></div>
+      <div style="padding:8px 14px 14px">
+        <div class="noprint" style="margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="sm" style="background:#25D366;color:#0a2e17" data-wa="${ri}">${L('waBtn')}</button>
+          <button class="ghost sm" data-copy="${ri}">${L('copyLink')}</button>
+          <button class="ghost sm" data-open="${ri}">${L('openDriver')}</button></div>
+        <div class="batches"></div></div>`;
+    const bc=box.querySelector('.batches'); let counter=0;
+    r.batches.forEach((batch,bi)=>{
+      const start=counter+1, end=counter+batch.length; counter=end;
+      const b=el('div','batch');
+      b.innerHTML=`<div class="bhd"><b>${L('group')} ${bi+1} · ${start}–${end}</b><span class="muted">${batch.length} ${L('stops')}</span></div>
+        <ol start="${start}">${batch.map(s=>`<li>${s.address} <span class="muted">— ${s.npa} ${s.city}</span></li>`).join('')}</ol>
+        <div class="acts noprint"><a href="${mapsLink(batch)}" target="_blank"><button class="maps sm">📍 Google Maps</button></a></div>`;
+      bc.appendChild(b);
+    });
+    res.appendChild(box);
+    box.querySelector('[data-copy]').onclick=()=>{ navigator.clipboard.writeText(driverLink(r)); toast(L('copied')); };
+    box.querySelector('[data-open]').onclick=()=>{ window.open(driverLink(r),'_blank'); };
+    box.querySelector('[data-wa]').onclick=()=>{
+      const link=driverLink(r);
+      const msg=fWaMsg(r.driver.name,today(),r.parcels.length,link);
+      let phone=(r.driver.phone||'').replace(/[^\d]/g,'');
+      if(phone && phone[0]==='0') phone='41'+phone.slice(1); // Suisse: 0xx -> 41xx
+      const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+                        : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      if(!phone) toast(L('waNoPhone'));
+      window.open(url,'_blank');
+    };
+  });
+  sum.scrollIntoView({behavior:'smooth'});
+}
+function driverLink(r){
+  const data={ id:r.driver.name.replace(/\s/g,'_')+'_'+today(), n:r.driver.name, d:CFG.depot, lang:LANG,
+    b:r.batches.map(batch=>batch.map(s=>({a:s.address,p:s.npa,c:s.city,t:s.tracking}))) };
+  return location.origin+location.pathname+'#r='+b64enc(data);
+}
+
+/* ============================================================
+   HISTORIQUE / HISTORIAL
+   ============================================================ */
+function renderHistory(c){
+  const h=getHist();
+  if(!h.length){ c.innerHTML=`<div class="card"><h2>${L('histTitle')}</h2><p class="muted">${L('histEmpty')}</p></div>`; return; }
+  c.innerHTML=`<div class="card"><h2>${L('histTitle')}</h2>
+    <table><thead><tr><th>${L('colDate')}</th><th>${L('colis')}</th><th>${L('routes')}</th><th>${L('revenue')}</th><th>${L('cost')}</th><th>${L('margin')}</th><th></th></tr></thead>
+    <tbody>${h.map((e,i)=>`<tr>
+      <td><b>${e.date}</b><div class="muted" style="font-size:11px">${(e.drivers||[]).map(d=>d.name+' ('+d.colis+')').join(', ')}</div></td>
+      <td>${e.colis}</td><td>${e.routes}</td><td>${chf(e.rev)}</td><td>${chf(e.cost)}</td>
+      <td class="margin ${e.margin>0?'pos':'neg'}"><b>${chf(e.margin)}</b></td>
+      <td><button class="danger sm" data-del="${i}">${L('del')}</button></td></tr>`).join('')}</tbody></table></div>`;
+  c.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ const h2=getHist(); h2.splice(+b.dataset.del,1); setHist(h2); renderHistory(c); });
+}
+
+/* ============================================================
+   NON LIVRÉS / NO ENTREGADOS
+   ============================================================ */
+function renderUndelivered(c){
+  const reps=getReports();
+  c.innerHTML=`<div class="card"><h2>${L('undelTitle')}</h2>
+     <p class="muted" style="margin-top:0">${L('undelHelp')}</p>
+     <textarea id="repin" rows="2" placeholder="https://…#report=…"></textarea>
+     <div style="margin-top:8px"><button id="loadRep">${L('loadReport')}</button>
+       ${reps.length?`<button class="ghost sm" id="clearRep" style="margin-left:8px">${L('clearAll')}</button>`:''}</div>
+   </div>
+   <div id="repout"></div>`;
+  $('#loadRep').onclick=()=>{
+    const v=$('#repin').value.trim(); const m=v.match(/#report=([^\s]+)/);
+    if(!m){ toast(L('reportErr')); return; }
+    let rep; try{ rep=b64dec(m[1]); }catch(e){ toast(L('reportErr')); return; }
+    const list=getReports(); const i=list.findIndex(r=>r.n===rep.n&&r.date===rep.date);
+    if(i>=0) list[i]=rep; else list.unshift(rep);
+    setReports(list); $('#repin').value=''; toast(L('reportLoaded')); renderUndelivered(c);
+    renderOrganizer(); goTab('undel');
+  };
+  if($('#clearRep')) $('#clearRep').onclick=()=>{ setReports([]); renderUndelivered(c); };
+  const out=$('#repout');
+  if(!reps.length){ out.innerHTML=`<div class="card"><p class="muted">${L('noReports')}</p></div>`; return; }
+  out.innerHTML=reps.map(r=>`<div class="card">
+     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+       <div><b>🚚 ${r.n}</b> <span class="muted">· ${r.date}</span></div>
+       <div class="stat" style="margin:0">
+         <div class="b"><div class="n">${r.tot}</div><div class="l">${L('colTotal')}</div></div>
+         <div class="b"><div class="n" style="color:var(--green)">${r.del}</div><div class="l">${L('colDelivered')}</div></div>
+         <div class="b"><div class="n" style="color:var(--red)">${r.u.length}</div><div class="l">${L('colUndel')}</div></div>
+       </div></div>
+     ${r.u.length?`<table style="margin-top:10px"><thead><tr><th>#</th><th>${L('c_address')}</th><th>NPA</th><th>${L('c_city')}</th><th>${L('c_tracking')}</th></tr></thead>
+       <tbody>${r.u.map(s=>`<tr><td>${s.num||''}</td><td>${s.a}</td><td>${s.p}</td><td>${s.c}</td><td class="muted">${s.t||''}</td></tr>`).join('')}</tbody></table>`
+       :`<div class="ok" style="margin-top:8px">${L('allDelivered')}</div>`}
+   </div>`).join('');
+}
+</script>
+</body>
+</html>
