@@ -157,9 +157,21 @@
   .screen-hd .backb{width:42px;height:42px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-size:24px;font-weight:800;padding:0;display:flex;align-items:center;justify-content:center}
   .screen-hd .backb:hover{background:var(--panel)}
   .screen-hd .ttl{font-size:22px;font-weight:800}
-  .seriesgo{border-radius:16px!important;margin-bottom:12px;border-bottom:none!important}
+  .seriesgo{display:block;text-align:center;text-decoration:none;background:linear-gradient(160deg,#0b8043,#0a6d39);
+    color:#fff;padding:16px;font-weight:800;font-size:17px;border-radius:16px;margin-bottom:12px;box-shadow:0 8px 18px rgba(11,128,67,.35)}
+  .seriesgo:hover{background:linear-gradient(160deg,#0a7038,#095f32)}
   .stoplist{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:12px}
   .stoplist .dv-stop:first-child{border-top:none}
+  /* code porte visible sous le numéro */
+  .dv-stop .num-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto}
+  .door-tag{display:inline-flex;align-items:center;gap:2px;background:#3a2e12;border:1px solid #6b5318;color:#f7d073;
+    border-radius:999px;padding:1px 7px;font-size:12px;font-weight:800;max-width:64px;overflow:hidden}
+  .door-tag.hide{display:none}
+  .finishb{background:linear-gradient(160deg,#1f2530,#171a21)}
+  /* carte chauffeur (tableau de bord) repliable */
+  .route{border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  details.routefold{margin-top:8px}
+  details.routefold>summary{font-size:13px}
   @media print{
     body{background:#fff;color:#000}
     .noprint{display:none!important}
@@ -269,6 +281,10 @@ const T = {
   notDelivered:{fr:"Non livré", es:"No entregado"},
   deliveredWord:{fr:"livrés", es:"entregados"},
   reopenSeries:{fr:"Rouvrir", es:"Reabrir"},
+  seeStops:{fr:"Voir les arrêts", es:"Ver las paradas"},
+  hideStops:{fr:"Masquer les arrêts", es:"Ocultar las paradas"},
+  savedDoor:{fr:"Code mémorisé", es:"Código guardado"},
+  colisShort:{fr:"Colis", es:"Colis"},
 };
 function fWaMsg(name,date,n,link){
   return LANG==='fr'
@@ -373,6 +389,12 @@ function renderDriver(){
   let codes={}; try{codes=JSON.parse(localStorage.getItem(storeKey+'_codes'))||{};}catch(e){}
   let sugg=''; try{ sugg=localStorage.getItem(storeKey+'_sugg')||''; }catch(e){}
   const save=()=>{ try{ localStorage.setItem(storeKey,JSON.stringify(done)); localStorage.setItem(storeKey+'_fin',JSON.stringify(fin)); localStorage.setItem(storeKey+'_codes',JSON.stringify(codes)); }catch(e){} };
+  // Mémoire des codes de porte PAR ADRESSE (partagée entre séries et entre jours, sur cet appareil)
+  let doorMem={}; try{ doorMem=JSON.parse(localStorage.getItem('palantir_doors'))||{}; }catch(e){}
+  const akey=s=>((s.a||'')+'|'+(s.p||'')).toLowerCase().replace(/\s+/g,' ').trim();
+  const rememberDoor=(s,v)=>{ const k=akey(s); if(v) doorMem[k]=v; else delete doorMem[k]; try{ localStorage.setItem('palantir_doors',JSON.stringify(doorMem)); }catch(e){} };
+  // On sauvegarde aussi la dernière tournée reçue sur l'appareil (pour la retrouver sans le lien)
+  try{ localStorage.setItem('palantir_last_route', location.hash); localStorage.setItem('palantir_last_route_n', data.n); }catch(e){}
   const okCount=()=>Object.values(done).filter(v=>v==='ok').length;
   const noCount=()=>Object.values(done).filter(v=>v==='no').length;
   const seriesOrigin=bi=>{ if(bi===0) return (data.d||CFG.depot); const p=data.b[bi-1][data.b[bi-1].length-1]; return `${p.a}, ${p.p} ${p.c}, Suisse`; };
@@ -412,12 +434,17 @@ function renderDriver(){
     const list=el('div','stoplist');
     batch.forEach((s,si)=>{
       const id=bi+'_'+si, stt=done[id]||'';
+      // code: celui saisi pour ce colis, sinon celui mémorisé pour cette adresse
+      const cur = (codes[id]!=null && codes[id]!=='') ? codes[id] : (doorMem[akey(s)]||'');
       const st=el('div','dv-stop '+(stt==='ok'?'ok':stt==='no'?'no':''));
-      st.innerHTML=`<div class="num">${code(bi,si)}</div>
+      st.innerHTML=`<div class="num-wrap"><div class="num">${code(bi,si)}</div>
+          <div class="door-tag ${cur?'':'hide'}">🔑<span class="dc">${(cur||'').replace(/</g,'&lt;')}</span></div></div>
         <div class="a"><div class="adr">${s.a}</div><div class="sub">${s.p} ${s.c}</div>
-          <input class="door" placeholder="🔑 ${L('doorCode')}" value="${(codes[id]||'').replace(/"/g,'&quot;')}"></div>
+          <input class="door" inputmode="text" placeholder="🔑 ${L('doorCode')}" value="${(cur||'').replace(/"/g,'&quot;')}"></div>
         <div class="stbtns"><button class="okb" title="${L('delivered')}">✓</button><button class="nob" title="${L('notDelivered')}">✕</button></div>`;
-      st.querySelector('.door').addEventListener('input',ev=>{ codes[id]=ev.target.value; save(); });
+      const tag=st.querySelector('.door-tag'), dc=st.querySelector('.dc');
+      st.querySelector('.door').addEventListener('input',ev=>{ const v=ev.target.value; codes[id]=v; rememberDoor(s,v);
+        dc.textContent=v; tag.classList.toggle('hide',!v); save(); });
       st.querySelector('.okb').onclick=()=>{ done[id]=done[id]==='ok'?'':'ok'; save(); render(); };
       st.querySelector('.nob').onclick=()=>{ done[id]=done[id]==='no'?'':'no'; save(); render(); };
       list.appendChild(st);
@@ -713,7 +740,8 @@ function renderResults(overflow){
           <button class="sm" style="background:#25D366;color:#0a2e17" data-wa="${ri}">${L('waBtn')}</button>
           <button class="ghost sm" data-copy="${ri}">${L('copyLink')}</button>
           <button class="ghost sm" data-open="${ri}">${L('openDriver')}</button></div>
-        <div class="batches"></div></div>`;
+        <details class="cfg routefold"><summary>${L('seeStops')} <span class="muted" style="text-transform:none;font-weight:400">· ${n} ${L('colisWord')} · ${r.batches.length} ${L('seriesWord').toLowerCase()}s</span></summary>
+          <div class="batches"></div></details></div>`;
     const bc=box.querySelector('.batches'); let counter=0;
     r.batches.forEach((batch,bi)=>{
       const start=counter+1, end=counter+batch.length; counter=end;
