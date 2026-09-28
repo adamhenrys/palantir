@@ -172,6 +172,28 @@
   .route{border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
   details.routefold{margin-top:8px}
   details.routefold>summary{font-size:13px}
+
+  /* ---- Série vue chauffeur : barre d'actions (boutons app) + onglets ---- */
+  .series-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .act-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-decoration:none;
+    padding:15px 10px;border-radius:18px;font-size:14px;font-weight:800;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);box-shadow:0 4px 12px rgba(0,0,0,.22)}
+  .act-btn .ai{font-size:23px;line-height:1}
+  .act-btn:hover{background:var(--panel)}
+  .act-btn.go{background:linear-gradient(160deg,#0b8043,#0a6d39);border-color:transparent;color:#fff;box-shadow:0 8px 18px rgba(11,128,67,.35)}
+  .act-btn.go:hover{background:linear-gradient(160deg,#0a7038,#095f32)}
+  .act-btn.tab.on{background:linear-gradient(160deg,var(--accent),var(--accent2));border-color:transparent;color:#fff;box-shadow:0 8px 18px rgba(37,99,235,.35)}
+  .act-btn.tab.on:hover{background:linear-gradient(160deg,var(--accent),var(--accent2))}
+  /* bouton code de porte par colis */
+  .doorbox{margin-top:7px}
+  .doorbtn{display:flex;align-items:center;gap:7px;width:100%;justify-content:flex-start;
+    background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 10px;font-size:13px;font-weight:700}
+  .doorbtn:hover{background:var(--panel2)}
+  .doorbtn.has{background:#3a2e12;border-color:#6b5318;color:#f7d073}
+  .doorbtn .plus{color:var(--muted);font-weight:500}
+  .doorbtn .edit{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .door-edit{width:100%;margin-top:7px}
+  .dv-stop.codes{align-items:flex-start}
   @media print{
     body{background:#fff;color:#000}
     .noprint{display:none!important}
@@ -285,6 +307,12 @@ const T = {
   hideStops:{fr:"Masquer les arrêts", es:"Ocultar las paradas"},
   savedDoor:{fr:"Code mémorisé", es:"Código guardado"},
   colisShort:{fr:"Colis", es:"Colis"},
+  startRoute:{fr:"Commencer", es:"Comenzar"},
+  finishRoute:{fr:"Terminer", es:"Terminar"},
+  tabAddr:{fr:"Adresses", es:"Direcciones"},
+  tabCodes:{fr:"Codes porte", es:"Códigos"},
+  addDoor:{fr:"Ajouter le code de porte", es:"Añadir código de puerta"},
+  editDoor:{fr:"Modifier", es:"Editar"},
 };
 function fWaMsg(name,date,n,link){
   return LANG==='fr'
@@ -400,7 +428,30 @@ function renderDriver(){
   const seriesOrigin=bi=>{ if(bi===0) return (data.d||CFG.depot); const p=data.b[bi-1][data.b[bi-1].length-1]; return `${p.a}, ${p.p} ${p.c}, Suisse`; };
   let openIndex=(function(){ for(let bi=0;bi<data.b.length;bi++) if(!fin['s'+bi]) return bi; return -1; })();
 
-  let screen='home';  // 'home' = grille des séries ; sinon index de la série ouverte
+  let screen='home';    // 'home' = grille des séries ; sinon index de la série ouverte
+  let subview='adr';    // dans une série : 'adr' = adresses (livraison) | 'cod' = codes de porte
+
+  // bouton « code de porte » par colis : montre le code si connu, permet d'ajouter / modifier
+  function doorControl(s,id){
+    const box=el('div','doorbox');
+    const cur=()=> (codes[id]!=null && codes[id]!=='') ? codes[id] : (doorMem[akey(s)]||'');
+    function showBtn(){
+      box.innerHTML=''; const v=cur();
+      const b=el('button','doorbtn'+(v?' has':''));
+      b.innerHTML = v ? `🔑 <b>${(''+v).replace(/</g,'&lt;')}</b><span class="edit">${L('editDoor')}</span>`
+                      : `🔑 <span class="plus">${L('addDoor')}</span>`;
+      b.onclick=()=>showInput(v); box.appendChild(b);
+    }
+    function showInput(v){
+      box.innerHTML=''; const inp=el('input','door-edit');
+      inp.value=v; inp.placeholder='🔑 '+L('doorCode'); inp.setAttribute('inputmode','text');
+      const commit=()=>{ const nv=inp.value.trim(); codes[id]=nv; rememberDoor(s,nv); save(); showBtn(); };
+      inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } });
+      inp.addEventListener('blur',commit);
+      box.appendChild(inp); inp.focus();
+    }
+    showBtn(); return box;
+  }
 
   // une série = une « app » (tuile) sur l'écran d'accueil
   function tile(bi){
@@ -418,7 +469,7 @@ function renderDriver(){
     return t;
   }
 
-  // écran d'UNE série (on entre « dans l'app »)
+  // écran d'UNE série (on entre « dans l'app ») : barre de boutons + liste
   function seriesScreen(bi){
     const batch=data.b[bi], finished=!!fin['s'+bi];
     const wrap=el('div','series-screen');
@@ -427,33 +478,39 @@ function renderDriver(){
     hd.querySelector('.backb').onclick=()=>{ screen='home'; render(); };
     wrap.appendChild(hd);
 
-    const go=el('a','go start seriesgo'); go.href=mapsLink(batch.map(s=>({address:s.a,npa:s.p,city:s.c})),seriesOrigin(bi)); go.target='_blank';
-    go.textContent=L('startSeries');
-    wrap.appendChild(go);
+    // barre d'actions : boutons style application
+    const acts=el('div','series-actions');
+    const go=el('a','act-btn go'); go.href=mapsLink(batch.map(s=>({address:s.a,npa:s.p,city:s.c})),seriesOrigin(bi)); go.target='_blank';
+    go.innerHTML=`<span class="ai">▶</span>${L('startRoute')}`;
+    const finb=el('button','act-btn fin'); finb.innerHTML=`<span class="ai">✓</span>${finished?L('reopenSeries'):L('finishRoute')}`;
+    finb.onclick=()=>{ const nowFin=!fin['s'+bi]; fin['s'+bi]=nowFin; save(); if(nowFin) screen='home'; render(); };
+    const tabA=el('button','act-btn tab'+(subview==='adr'?' on':'')); tabA.innerHTML=`<span class="ai">📋</span>${L('tabAddr')}`;
+    tabA.onclick=()=>{ subview='adr'; render(); };
+    const tabC=el('button','act-btn tab'+(subview==='cod'?' on':'')); tabC.innerHTML=`<span class="ai">🔑</span>${L('tabCodes')}`;
+    tabC.onclick=()=>{ subview='cod'; render(); };
+    acts.append(go,finb,tabA,tabC);
+    wrap.appendChild(acts);
 
+    // liste selon l'onglet actif
     const list=el('div','stoplist');
     batch.forEach((s,si)=>{
       const id=bi+'_'+si, stt=done[id]||'';
-      // code: celui saisi pour ce colis, sinon celui mémorisé pour cette adresse
-      const cur = (codes[id]!=null && codes[id]!=='') ? codes[id] : (doorMem[akey(s)]||'');
-      const st=el('div','dv-stop '+(stt==='ok'?'ok':stt==='no'?'no':''));
-      st.innerHTML=`<div class="num-wrap"><div class="num">${code(bi,si)}</div>
-          <div class="door-tag ${cur?'':'hide'}">🔑<span class="dc">${(cur||'').replace(/</g,'&lt;')}</span></div></div>
-        <div class="a"><div class="adr">${s.a}</div><div class="sub">${s.p} ${s.c}</div>
-          <input class="door" inputmode="text" placeholder="🔑 ${L('doorCode')}" value="${(cur||'').replace(/"/g,'&quot;')}"></div>
-        <div class="stbtns"><button class="okb" title="${L('delivered')}">✓</button><button class="nob" title="${L('notDelivered')}">✕</button></div>`;
-      const tag=st.querySelector('.door-tag'), dc=st.querySelector('.dc');
-      st.querySelector('.door').addEventListener('input',ev=>{ const v=ev.target.value; codes[id]=v; rememberDoor(s,v);
-        dc.textContent=v; tag.classList.toggle('hide',!v); save(); });
-      st.querySelector('.okb').onclick=()=>{ done[id]=done[id]==='ok'?'':'ok'; save(); render(); };
-      st.querySelector('.nob').onclick=()=>{ done[id]=done[id]==='no'?'':'no'; save(); render(); };
+      const st=el('div','dv-stop '+(subview==='cod'?'codes ':'')+(stt==='ok'?'ok':stt==='no'?'no':''));
+      const num=el('div','num-wrap'); num.innerHTML=`<div class="num">${code(bi,si)}</div>`;
+      const a=el('div','a'); a.innerHTML=`<div class="adr">${s.a}</div><div class="sub">${s.p} ${s.c}</div>`;
+      a.appendChild(doorControl(s,id));
+      st.append(num,a);
+      if(subview==='adr'){
+        const btns=el('div','stbtns');
+        const ok=el('button','okb'); ok.title=L('delivered'); ok.textContent='✓';
+        ok.onclick=()=>{ done[id]=done[id]==='ok'?'':'ok'; save(); render(); };
+        const no=el('button','nob'); no.title=L('notDelivered'); no.textContent='✕';
+        no.onclick=()=>{ done[id]=done[id]==='no'?'':'no'; save(); render(); };
+        btns.append(ok,no); st.append(btns);
+      }
       list.appendChild(st);
     });
     wrap.appendChild(list);
-
-    const fb=el('button','finishb'); fb.textContent=finished?L('reopenSeries'):L('finishSeries');
-    fb.onclick=()=>{ const nowFin=!fin['s'+bi]; fin['s'+bi]=nowFin; save(); if(nowFin) screen='home'; render(); };
-    wrap.appendChild(fb);
     return wrap;
   }
 
