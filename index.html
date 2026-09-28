@@ -91,6 +91,25 @@
   .dv-batch.complete .h{background:#12241a}
   .dv-batch.complete .h b{color:#7ee2a8}
   .dv-batch.collapsed .h{opacity:.85}
+  .dv-batch.finished{opacity:.6;filter:grayscale(.6)}
+  .dv-batch.finished .h{background:#191b20}
+  .dv-stop .a .door{width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    padding:6px 8px;border-radius:7px;font-size:13px}
+  .dv-stop .stbtns{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+  .dv-stop .stbtns button{width:44px;height:34px;font-size:16px;font-weight:800;border-radius:8px;padding:0;
+    background:var(--chip);border:1px solid var(--line);color:var(--muted)}
+  .dv-stop .stbtns .okb{color:#7ee2a8}
+  .dv-stop .stbtns .nob{color:#ff9a9a}
+  .dv-stop.ok{background:#0f2417}
+  .dv-stop.ok .stbtns .okb{background:#0b8043;color:#fff;border-color:#0b8043}
+  .dv-stop.ok .num{background:var(--greenbg);border-color:#1f5238;color:#7ee2a8}
+  .dv-stop.no{background:#2a1414}
+  .dv-stop.no .stbtns .nob{background:#c0392b;color:#fff;border-color:#c0392b}
+  .dv-stop.no .num{background:var(--redbg);border-color:#5a2020;color:#ff9a9a}
+  .dv-batch .go.start{background:#0b8043}
+  .finishb{display:block;width:calc(100% - 24px);margin:10px 12px 12px;background:var(--chip);
+    color:var(--txt);border:1px solid var(--line);padding:12px;font-weight:700}
+  .finishb:hover{background:var(--panel2)}
   .dv-batch{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
   .dv-batch .h{padding:12px 14px;background:var(--panel2);display:flex;justify-content:space-between;align-items:center;gap:10px}
   .dv-stop{display:flex;gap:12px;align-items:center;padding:14px;border-top:1px solid var(--line)}
@@ -209,6 +228,12 @@ const T = {
   minPerStop:{fr:"Min. par arrêt (estimation)", es:"Min. por parada (estimación)"},
   colSugg:{fr:"Suggestion du chauffeur", es:"Sugerencia del conductor"},
   colFinish:{fr:"Fini à", es:"Terminó a"},
+  startSeries:{fr:"▶ Commencer la série (Google Maps)", es:"▶ Comenzar la serie (Google Maps)"},
+  finishSeries:{fr:"✓ Terminer la série", es:"✓ Terminar la serie"},
+  doorCode:{fr:"Code porte", es:"Código puerta"},
+  notDelivered:{fr:"Non livré", es:"No entregado"},
+  deliveredWord:{fr:"livrés", es:"entregados"},
+  reopenSeries:{fr:"Rouvrir", es:"Reabrir"},
 };
 function fWaMsg(name,date,n,link){
   return LANG==='fr'
@@ -307,70 +332,81 @@ function renderDriver(){
   const storeKey='dv_done_'+(data.id||data.n);
   let done={}; try{done=JSON.parse(localStorage.getItem(storeKey))||{};}catch(e){}
 
+  // états : done[bi_si] = 'ok' (livré) | 'no' (non livré) ; fin['s'+bi]=true (série terminée) ; codes[bi_si]=code porte
   const code=(bi,si)=>(bi+1)*10+(si+1);            // série 4 · position 9 -> 49
-  const isDone=(bi,si)=>!!done[bi+'_'+si];
-  const seriesDoneCount=bi=>data.b[bi].filter((s,si)=>isDone(bi,si)).length;
-  const seriesComplete=bi=>seriesDoneCount(bi)===data.b[bi].length;
-  const firstOpenSeries=()=>{ for(let bi=0;bi<data.b.length;bi++) if(!seriesComplete(bi)) return bi; return data.b.length-1; };
-  let openIndex=firstOpenSeries();
+  let fin={}; try{fin=JSON.parse(localStorage.getItem(storeKey+'_fin'))||{};}catch(e){}
+  let codes={}; try{codes=JSON.parse(localStorage.getItem(storeKey+'_codes'))||{};}catch(e){}
   let sugg=''; try{ sugg=localStorage.getItem(storeKey+'_sugg')||''; }catch(e){}
+  const save=()=>{ try{ localStorage.setItem(storeKey,JSON.stringify(done)); localStorage.setItem(storeKey+'_fin',JSON.stringify(fin)); localStorage.setItem(storeKey+'_codes',JSON.stringify(codes)); }catch(e){} };
+  const okCount=()=>Object.values(done).filter(v=>v==='ok').length;
+  const noCount=()=>Object.values(done).filter(v=>v==='no').length;
+  const seriesOrigin=bi=>{ if(bi===0) return (data.d||CFG.depot); const p=data.b[bi-1][data.b[bi-1].length-1]; return `${p.a}, ${p.p} ${p.c}, Suisse`; };
+  let openIndex=(function(){ for(let bi=0;bi<data.b.length;bi++) if(!fin['s'+bi]) return bi; return -1; })();
+
+  function seriesCard(bi){
+    const batch=data.b[bi], finished=!!fin['s'+bi], open=(bi===openIndex && !finished);
+    const dOk=batch.filter((s,si)=>done[bi+'_'+si]==='ok').length;
+    const dNo=batch.filter((s,si)=>done[bi+'_'+si]==='no').length;
+    const box=el('div','dv-batch'+(finished?' finished':'')+((open||finished&&open)?'':' collapsed'));
+    const h=el('div','h'); h.style.cursor='pointer';
+    h.innerHTML=`<b>${L('seriesWord')} ${bi+1}</b><span class="muted">${finished?`✓ ${dOk} ${L('deliveredWord')}${dNo?` · ${dNo} ${L('notDelivered').toLowerCase()}`:''}`:`${dOk+dNo}/${batch.length}`}</span>`;
+    h.onclick=()=>{ openIndex=(bi===openIndex?-1:bi); render(); };
+    box.appendChild(h);
+    if(open){
+      const go=el('a','go start'); go.href=mapsLink(batch.map(s=>({address:s.a,npa:s.p,city:s.c})),seriesOrigin(bi)); go.target='_blank';
+      go.textContent=L('startSeries');
+      box.appendChild(go);
+      batch.forEach((s,si)=>{
+        const id=bi+'_'+si, stt=done[id]||'';
+        const st=el('div','dv-stop '+(stt==='ok'?'ok':stt==='no'?'no':''));
+        st.innerHTML=`<div class="num">${code(bi,si)}</div>
+          <div class="a"><div class="adr">${s.a}</div><div class="sub">${s.p} ${s.c}</div>
+            <input class="door" placeholder="🔑 ${L('doorCode')}" value="${(codes[id]||'').replace(/"/g,'&quot;')}"></div>
+          <div class="stbtns"><button class="okb" title="${L('delivered')}">✓</button><button class="nob" title="${L('notDelivered')}">✕</button></div>`;
+        st.querySelector('.door').addEventListener('input',ev=>{ codes[id]=ev.target.value; save(); });
+        st.querySelector('.okb').onclick=()=>{ done[id]=done[id]==='ok'?'':'ok'; save(); render(); };
+        st.querySelector('.nob').onclick=()=>{ done[id]=done[id]==='no'?'':'no'; save(); render(); };
+        box.appendChild(st);
+      });
+      const fb=el('button','finishb'); fb.textContent=L('finishSeries');
+      fb.onclick=()=>{ fin['s'+bi]=true; save(); for(let b=0;b<data.b.length;b++) if(!fin['s'+b]){openIndex=b;break;} render(); };
+      box.appendChild(fb);
+    } else if(finished){
+      // repliée en gris ; clic sur l'en-tête pour rouvrir/relire
+      const rb=el('button','ghost sm'); rb.style.margin='0 12px 12px'; rb.textContent=L('reopenSeries');
+      rb.onclick=()=>{ fin['s'+bi]=false; openIndex=bi; save(); render(); };
+      if(bi===openIndex) box.appendChild(rb);
+    }
+    return box;
+  }
 
   function render(){
-    const del=Object.keys(done).filter(k=>done[k]).length;
-    const remain=total-del;
+    const remain=total-okCount();
     app.innerHTML='';
-    // en-tête : gros compteur « à livrer »
     const hd=el('div','dv-hd');
     hd.innerHTML=`<div style="display:flex;align-items:center"><div class="big">🚚 ${data.n}</div>${langToggle()}</div>
       <div class="remainbox"><div class="remain-n">${remain}</div><div class="remain-l">${L('remainLabel')}</div>
-        <div class="remain-sub">${del}/${total} ${L('delivered')}</div></div>
-      <div class="progress"><i style="width:${total?(del/total*100):0}%"></i></div>`;
+        <div class="remain-sub">${okCount()}/${total} ${L('delivered')}${noCount()?` · ${noCount()} ${L('notDelivered').toLowerCase()}`:''}</div></div>
+      <div class="progress"><i style="width:${total?((okCount()+noCount())/total*100):0}%"></i></div>`;
     app.appendChild(hd);
 
-    data.b.forEach((batch,bi)=>{
-      const dc=seriesDoneCount(bi), complete=seriesComplete(bi), open=(bi===openIndex);
-      const box=el('div','dv-batch'+(complete?' complete':'')+(open?'':' collapsed'));
-      const h=el('div','h'); h.style.cursor='pointer';
-      h.innerHTML=`<b>${L('seriesWord')} ${bi+1}</b><span class="muted">${complete?L('seriesDone'):dc+'/'+batch.length}</span>`;
-      h.onclick=()=>{ openIndex=(open?-1:bi); render(); };
-      box.appendChild(h);
-      if(open){
-        // Google Maps : départ = dépôt (1re série) sinon dernier arrêt de la série précédente
-        let origin=(data.d||CFG.depot);
-        if(bi>0){ const prev=data.b[bi-1][data.b[bi-1].length-1]; origin=`${prev.a}, ${prev.p} ${prev.c}, Suisse`; }
-        const go=el('a','go'); go.href=mapsLink(batch.map(s=>({address:s.a,npa:s.p,city:s.c})),origin); go.target='_blank';
-        go.textContent=(LANG==='fr'?'📍 Ouvrir dans Google Maps':'📍 Abrir en Google Maps');
-        box.appendChild(go);
-        batch.forEach((s,si)=>{
-          const st=el('div','dv-stop'+(isDone(bi,si)?' done':''));
-          st.innerHTML=`<div class="num">${code(bi,si)}</div>
-            <input type="checkbox" ${isDone(bi,si)?'checked':''}>
-            <div class="a"><div class="adr">${s.a}</div><div class="sub">${s.p} ${s.c}</div></div>`;
-          st.querySelector('input').addEventListener('change',ev=>{
-            done[bi+'_'+si]=ev.target.checked; try{localStorage.setItem(storeKey,JSON.stringify(done));}catch(e){}
-            if(ev.target.checked && seriesComplete(bi)){ openIndex=firstOpenSeries(); } // auto-avance
-            render();
-          });
-          box.appendChild(st);
-        });
-      }
-      app.appendChild(box);
-    });
+    // séries actives d'abord, séries terminées en gris tout en bas
+    const pend=[], doned=[];
+    data.b.forEach((b,bi)=>{ (fin['s'+bi]?doned:pend).push(bi); });
+    pend.concat(doned).forEach(bi=>app.appendChild(seriesCard(bi)));
 
-    // suggestion du chauffeur
     const sg=el('div','card'); sg.style.marginTop='4px';
     sg.innerHTML=`<label style="font-size:13px">${L('suggTitle')}</label>
       <textarea id="sugg" rows="2" placeholder="${L('suggPh')}">${sugg}</textarea>`;
     app.appendChild(sg);
     sg.querySelector('#sugg').addEventListener('input',ev=>{ sugg=ev.target.value; try{localStorage.setItem(storeKey+'_sugg',sugg);}catch(e){} });
 
-    // bouton rapport (colis non livrés + suggestion + heure)
     const rep=el('button','report-btn'); rep.textContent=L('sendReport');
     rep.onclick=()=>{
       const undel=[];
-      data.b.forEach((batch,bi)=>batch.forEach((s,si)=>{ if(!isDone(bi,si)) undel.push({a:s.a,p:s.p,c:s.c,num:code(bi,si)}); }));
+      data.b.forEach((batch,bi)=>batch.forEach((s,si)=>{ if(done[bi+'_'+si]!=='ok') undel.push({a:s.a,p:s.p,c:s.c,num:code(bi,si)}); }));
       const now=new Date().toTimeString().slice(0,5);
-      const report={n:data.n,date:today(),tot:total,del:total-undel.length,u:undel,sugg:sugg,fin:now};
+      const report={n:data.n,date:today(),tot:total,del:okCount(),u:undel,sugg:sugg,fin:now};
       const link=location.origin+location.pathname+'#report='+packEnc(report);
       navigator.clipboard.writeText(link); toast(L('reportCopied'));
     };
